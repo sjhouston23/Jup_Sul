@@ -1,0 +1,9 @@
+.DS_Store
+*.dat
+*.txt
+*.zip
+*.x
+2Stream/input
+2Stream/common
+2Stream/output
+
