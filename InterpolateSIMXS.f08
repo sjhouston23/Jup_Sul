@@ -75,7 +75,7 @@ do tProc=1,nTargProc !Loop through every target process
       write(101,1001) real(E),(exp(SIMxsInterp(tProc,pProc,ChS,E)),ChS=1,nChS)
     end do !End interpolation loop (1-2000 keV/u)
     close(101)
-    write(filename,"('./SIMXS/',A,A,'.txt')")&
+    write(filename,"('./SIMXS/',A,A,'p.dat')")&
     trim(TargProcCap(tProc)),trim(ProjProcCap(pProc))
     open(unit=102,file=trim(filename))
     write(102,1002) (i-1,i=1,17)
