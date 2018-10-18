@@ -2,7 +2,12 @@
 *.dat
 *.txt
 *.zip
+*.fig
+*.eps
+*.jpg
+*.png
 *.x
+*~
 2Stream/input
 2Stream/common
 2Stream/output
