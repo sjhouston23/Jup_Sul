@@ -49,12 +49,9 @@ close(100) !Close the file
 do tProc=1,nTargProc !Loop through every target process
   do pProc=1,nProjProc+1 !Loop through every projectile process plus 1
     do ChS=1,nChS !Loop through every charge state (0-16)
-      write(filename,"('./SIMXSInterp/',A,A,'.txt')")&
-      trim(TargProcCap(tProc)),trim(ProjProcCap(pProc))
-      open(unit=101,file=trim(filename))
       Eng=1 !Set Eng variable back to 1
       do E=1,nInterpEnergies !Interpolation loop (1-2000 keV/u)
-        if(E.gt.Energy(Eng+1)) Eng=Eng+1 !Go to next Energy when appropriate
+        if(E.ge.Energy(Eng+1)) Eng=Eng+1 !Go to next Energy when appropriate
         SIMxsInterp(tProc,pProc,ChS,E)=log(SIMxs(ChS,Eng,tProc,pProc))+&
         (log(real(E))-log(Energy(Eng)))*&
         (log(SIMxs(ChS,Eng+1,tProc,pProc))-log(SIMxs(ChS,Eng,tProc,pProc)))/&
