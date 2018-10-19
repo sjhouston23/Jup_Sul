@@ -5,6 +5,8 @@ program InterpolateSIMXS
 !* This program reads in SIM cross-sections for sulfur from .txt files and
 !* interpolates them using both loglog linear and loglog spline interpolation.
 !* All the cross-sections are from Schultz et al. (2019).
+!* The initial cross-sections are stored in SIMXSall.dat, which is generated
+!* with SIMXSCalculation.f08 in the SulfurXS directory.
 !*******************************************************************************
 
 implicit real*8(a-h,o-z)
