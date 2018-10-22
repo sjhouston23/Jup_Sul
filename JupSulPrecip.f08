@@ -66,7 +66,7 @@ integer t3,t4,clock_max,clock_rate !Used to calculate comp. time
 real*8 hrs,min,sec
 
 !* Sulfur ion variables
-integer energy,trial,tempQ,tempOld,dpt,process,excite
+integer energy,trial,ChS,oldChS,dpt,excite,elect,disso,PID(2)
 real*8 incB,kappa
 real*8,dimension(nEnergies) :: IonEnergy
 real*8,dimension(nChS,nInterpEnergies) :: SIMxs_Total
@@ -137,9 +137,9 @@ SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000, 10=5000,
 !* 11=10000, 12=25000
 !*******************************************************************************
-nIons=100 !Number of ions that are precipitating
-trail=1 !The seed for the RNG
-do run=1,1!nEnergies !Loop through different initial ion energies
+nIons=10!0 !Number of ions that are precipitating
+trail=2 !The seed for the RNG
+do run=4,4!nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=int(IonEnergy(run))
   write(*,*) "Number of ions:         ", nIons
@@ -158,7 +158,7 @@ do run=1,1!nEnergies !Loop through different initial ion energies
   ! totH2p=0;eCounts   =0;electFwdA =0;electBwdA =0;SigTotvsEng=0.0;maxDpt=0
   ! H2Ex  =0;oxygen    =0;electFwdAE=0;electBwdAE=0;dEvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
-  write(*,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
+  ! write(*,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
   do ion=1,nIons !Each ion starts here
     !*****************************
     !Initial Conditions:
@@ -169,24 +169,23 @@ do run=1,1!nEnergies !Loop through different initial ion energies
                        !enough to allow the ion to lose all energy
     E=IonEnergy(run)   !Start with initial ion energy
     dE=0.0             !Energy loss
-    initQ=3            !1 is an initial charge state of -1, 3 is +1
-    tempQ=initQ        !Set the charge state variable that will be changed
-    tempQold=initQ     !Need another charge state variable for energyLoss.f08
+    initChS=2          !1 is an initial charge state of 0, 2 is +1
+    ChS=initChS        !Set the charge state variable that will be changed
+    oldChS=initChS     !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
     dZTot=3000.0       !Start from the top of the atmosphere
     dpt=4              !Depth of penetration for bins. (integer value)
     !Beginning scale height (H) at 4 or 5 seems to be more accurate than 1-3
     l=0                !Used as index for dN calculation (ranVecA(l))
-    process=0;excite=0 !CollisionSim outputs
+    excite=0           !CollisionSim outputs
     PID=0              !Process identification numbers
-    sigTotOld=0.0
     !*****************************
     pangle=(2.0*atan(1.0))-acos(angle(ion)) !Pitch angle calculation has a
     !cosine dist. Straight down is pitch angle of 0, random number must be 0
-    write(*,*) 'Ion Number: ', ion, 'Pitch angle: ', pangle*90/acos(0.0)
+    ! write(*,*) 'Ion Number: ', ion, 'Pitch angle: ', pangle*90/acos(0.0)
     kappa=1.0/(cos(pangle)*cos(incB)) !Used to convert from ds to dz
     call ranlux(ranVecA,10002) !Get a random vector for collisions
-    do i=1,numSim !This loop repeats after each collision until E < 1 keV/u
+    do i=1,1!numSim !This loop repeats after each collision until E < 1 keV/u
       ! !*****************************
       ! !Reset Variables:
       ! eEnergy=0.0;eEnergyTmp=0.0 !Ejected electron energy
@@ -195,7 +194,8 @@ do run=1,1!nEnergies !Loop through different initial ion energies
       ! eAngleSS=0.0;eEnergySS=0.0
       ! eAngleDS=0.0;eEnergyDS=0.0
       ! !*****************************
-      call CollisionSim
+      call CollisionSim(int(E),SIMxs,SIMxs_Total,in,ChS,excite,elect,disso,PID)
+      ! write(*,*) E,PID,ChS,excite,elect,disso
     end do !End of i=1,numSim loop (E < 1 keV/u)
   end do !End of ion=1,nIons loop
 
