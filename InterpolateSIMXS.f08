@@ -28,7 +28,7 @@ parameter(SS=1,DS=2,SPEX=3,DPEX=4) !Projectile process numbers
 
 real*8,dimension(nEnergies) :: Energy !Each initial energy
 real*8,dimension(nChS,nEnergies,nTargProc,1+nProjProc) :: SIMxs !SIMxs points
-real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) ::SIMxsInterp
+real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxsInterp
 !* SIMxs has an additonal projectile process which is no projectile process
 !* i.e. SI, SI+SS, SI+DS, SI+SPEX, SI+DPEX (respectively)
 
@@ -85,8 +85,13 @@ do tProc=1,nTargProc !Loop through every target process
   end do !End loop through every projectile process plus 1
 end do !End loop through every target process
 
+open(unit=103,file='./SIMXSInterp/SIMXSInterpAll.dat')
+write(103,1100) exp(SIMxsInterp) !Write out every cross-section to a single file
+close(103)
+
 1000 format(17(ES9.3E2,1x))
 1001 format(F7.2,17(1x,ES9.3E2))
 1002 format(' Energy',4x,9('S^',I0,'+',6x),8('S^',I0,'+',5x))
+1100 format(20(ES9.3E2,1x))
 
 end program
