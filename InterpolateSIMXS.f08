@@ -54,6 +54,7 @@ do tProc=1,nTargProc !Loop through every target process
       Eng=1 !Set Eng variable back to 1
       do E=1,nInterpEnergies !Interpolation loop (1-2000 keV/u)
         if(E.ge.Energy(Eng+1)) Eng=Eng+1 !Go to next Energy when appropriate
+        if(E.eq.2000) Eng=8 !Don't want Eng to go out of bounds
         SIMxsInterp(tProc,pProc,ChS,E)=log(SIMxs(ChS,Eng,tProc,pProc))+&
         (log(real(E))-log(Energy(Eng)))*&
         (log(SIMxs(ChS,Eng+1,tProc,pProc))-log(SIMxs(ChS,Eng,tProc,pProc)))/&
