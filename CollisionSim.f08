@@ -1,4 +1,4 @@
-subroutine CollisionSim(E,SIMxs,SIMxs_Total,trial,ChS,excite,elect,disso,PID)
+subroutine CollisionSim(E,SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
 !*******************************************************************************
 !* Created by Stephen J. Houston 10.22.18
 !*******************************************************************************
@@ -24,10 +24,6 @@ subroutine CollisionSim(E,SIMxs,SIMxs_Total,trial,ChS,excite,elect,disso,PID)
 !*		SIMxs_Total --> Sum of SIM cross-sections vs. energy and charge state
 !*		 Type: Real*8 Matrix
 !*		 Units: cm^-2
-!*
-!*		trial --> Run number and seed for the RNG
-!*		 Type: Integer
-!*		 Units: None
 !*
 !*		ChS --> Charge state
 !*		 Type: Integer
@@ -59,7 +55,7 @@ subroutine CollisionSim(E,SIMxs,SIMxs_Total,trial,ChS,excite,elect,disso,PID)
 implicit real*8(a-h,o-z)
 
 !**************************** Variable Declaration *****************************
-integer,intent(in) :: E,trial
+integer,intent(in) :: E
 integer,intent(inout) :: ChS
 integer,intent(out) :: excite,elect,disso,PID(2)
 
@@ -145,7 +141,6 @@ end if
 !* PID is used as a processes identification
 !*
 !*******************************************************************************
-!call rluxgo(lux,trial,k1,k2) !Seed the RNG
 call ranlux(ranVecB,1) !Only need 1 random number every time there's a collision
 sumProb=0
 if(ranVecB(1).gt.0.99999)ranVecB(1)=ranVecB(1)-0.00001
