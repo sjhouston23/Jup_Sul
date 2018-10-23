@@ -43,12 +43,19 @@ program SulfurIonPrecip
 
 use,intrinsic :: ISO_FORTRAN_ENV !Used for int64 integers
 !use formatting !Formatting module to avoid cluttering the end of the program
-implicit real*8(a-h,o-z)
+implicit none
 
 !**************************** Variable Declaration *****************************
-integer run,ion !Do-loop variables
+integer i,j,k,l,m,n,run,ion !Do-loop variables
 !* Parameter variables:
 integer atmosLen !"Length" of the atmosphere (3000 - -88 km) with 2 km steps
+integer nProjProc !Number of projectile processes
+integer nTargProc !Number of target processes
+integer nEnergies !Number of inital energies
+integer nInterpEnergies !Number of interpolated energies
+integer nChS !Number of sulfur charge states from 0-16
+integer SS,DS,SPEX,DPEX !Projectile processes
+integer SI,DI,TI,DA,SC,DC,TEX !Target processes
 
 parameter(nProjProc=4) !Number of projectile processes
 parameter(nTargProc=7) !Number of target processes
@@ -58,7 +65,8 @@ parameter(nChS=17) !Number of charge states from 0-16
 parameter(SI=1,DI=2,TI=3,DA=4,SC=5,DC=6,TEX=7) !Target process numbers
 parameter(SS=1,DS=2,SPEX=3,DPEX=4) !Projectile process numbers
 parameter(atmosLen=1544) !Length of the atmosphere
-parameter(k1=0,k2=0,lux=3) !lux set to 3 for optimal randomness and timeliness
+
+real*8 dum
 
 !* Computational time variables:
 integer t1,t2,clock_maxTotal,clock_rateTotal !Used to calculate comp. time
@@ -66,8 +74,9 @@ integer t3,t4,clock_max,clock_rate !Used to calculate comp. time
 real*8 hrs,min,sec
 
 !* Sulfur ion variables
-integer energy,trial,ChS,oldChS,dpt,excite,elect,disso,PID(2)
-real*8 incB,kappa
+integer energy,trial,initChS,ChS,oldChS,dpt,excite,elect,disso,PID(2),nIons
+integer numSim
+real*8 incB,kappa,dE,dNTot,dZTot,E,pangle
 real*8,dimension(nEnergies) :: IonEnergy
 real*8,dimension(nChS,nInterpEnergies) :: SIMxs_Total
 real*8,dimension(1+nProjProc,nChS,nInterpEnergies) :: SIMxs_Totaltmp
@@ -76,6 +85,8 @@ real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxs
 !* i.e. SI, SI+SS, SI+DS, SI+SPEX, SI+DPEX (respectively)
 
 !* Random Number Generator
+integer k1,k2,lux,in
+parameter(k1=0,k2=0,lux=3) !lux set to 3 for optimal randomness and timeliness
 real ranVecA(10002)
 real,allocatable :: angle(:)
 
@@ -138,7 +149,7 @@ SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
 !* 11=10000, 12=25000
 !*******************************************************************************
 nIons=10!0 !Number of ions that are precipitating
-trail=2 !The seed for the RNG
+trial=3 !The seed for the RNG
 do run=4,4!nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=int(IonEnergy(run))
@@ -194,8 +205,8 @@ do run=4,4!nEnergies !Loop through different initial ion energies
       ! eAngleSS=0.0;eEnergySS=0.0
       ! eAngleDS=0.0;eEnergyDS=0.0
       ! !*****************************
-      call CollisionSim(int(E),SIMxs,SIMxs_Total,in,ChS,excite,elect,disso,PID)
-      ! write(*,*) E,PID,ChS,excite,elect,disso
+      call CollisionSim(int(E),SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
+      write(*,*) E,PID,ChS,excite,elect,disso
     end do !End of i=1,numSim loop (E < 1 keV/u)
   end do !End of ion=1,nIons loop
 
