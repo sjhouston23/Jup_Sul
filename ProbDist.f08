@@ -41,20 +41,25 @@ parameter(nInterpEng=nInterp*(neEnergies-1)+1) !Number of interpolated energies
 parameter(neAngles=46) !Number of electron ejection angles (0.05° - 179.5°)
 parameter(nInterpAng=nInterp*(neAngles-1)+1) !Number of interpolated angles
 parameter(nChS=17) !Number of charge states from 0-16
-parameter(SI=1,DI=2,TI=3,DCAi=4,SS=5,DS=6) !Electron producing processes
+parameter(SI=1,DI=2,TI=3,DCAI=4,SS=5,DS=6) !Electron producing processes
 parameter(pi=4.0*atan(1.0d0)) !pi to convert degrees to radians
 
 real*8 integralSDXSe,integralSDXSa
 !* Schultz et al., 2019 data
 real*8,dimension(neEnergies) :: eEnergy,dE,tmpe !The electron ejection energies
-real*8,dimension(neAngles) :: eAngle,dA,tmpa !The electron ejection agles
+real*8,dimension(neAngles) :: eAngle,dA,tmpa,eAngleRad !The electron angles
 real*8,dimension(nProc,nChS,nEnergies,neEnergies) :: SDXSe !SDXS energy
 real*8,dimension(nProc,nChS,nEnergies,neAngles) :: SDXSa !SDXS angle
+real*8,dimension(nProc,nChS,nEnergies) :: NSIMxs !NSIM cross-sections
 !* Interpolated data
 real*8,dimension(nInterpEng) :: InterpEnergy
 real*8,dimension(nInterpAng) :: InterpAngle,InterpAngleRad
 real*8,dimension(nProc,nChS,nEnergies,nInterpEng) :: InterpSDXSe
 real*8,dimension(nProc,nChS,nEnergies,nInterpAng) :: InterpSDXSa
+
+character(len=4),dimension(nProc) :: Processes
+!****************************** Data Declaration *******************************
+data Processes/'  SI','  DI','  TI','DCAI','  SS','  DS'/
 !******************* Get singly differential cross-sections ********************
 open(unit=101,file='./SDXSeall.dat') !If 0.0 values, need to change to 1.000E-30
 open(unit=102,file='./SDXSaall.dat') !If 0.0 values, need to change to 1.000E-30
@@ -66,9 +71,26 @@ close(101)
 close(102)
 1000 format(10(F8.3,1x))
 1001 format(10(ES9.3E2,1x))
+!******************************* Read NSIM data ********************************
+open(unit=104,file='NSIM.txt',status='old') !All NSIM data
+do ChS=1,nChS !Loop through every charge state
+  do i=1,20
+    read(104,*) !Skip a bunch of blank lines
+  end do
+  do Eng=1,nEnergies !Loop through every energy
+    read(104,*) !Skip a line
+    do Proc=1,nProc
+      read(104,*) NSIMxs(Proc,ChS,Eng)
+    end do
+    do i=1,3
+      read(104,*)
+    end do
+  end do
+end do
+close(104)
 !**************************** Initialize Variables *****************************
 InterpSDXSe=0.0;InterpSDXSa=0.0;InterpEnergy=0.0;InterpAngle=0.0
-InterpAngleRad=0.0
+InterpAngleRad=0.0;eAngleRad=0.0
 !***** Calculate the change in energies and angles for Simpson's rule
 do Eng=1,neEnergies
   if(Eng.eq.1)then
@@ -77,11 +99,12 @@ do Eng=1,neEnergies
     dE(Eng)=eEnergy(Eng)-eEnergy(Eng-1)
   end if
 end do
+eAngleRad=eAngle*pi/180.0 !Convert angles to radians
 do Ang=1,neAngles
   if(Eng.eq.1)then
-    dA(Ang)=eAngle(Ang)-0.0
+    dA(Ang)=eAngleRad(Ang)-0.0 !Want dA in radians
   else
-    dA(Ang)=eAngle(Ang)-eAngle(Ang-1)
+    dA(Ang)=eAngleRad(Ang)-eAngleRad(Ang-1)
   end if
 end do
 !******************* Create interpolated energies and angles *******************
@@ -96,9 +119,12 @@ do i=1,nInterpAng !Calculate interpolated angle bins
   InterpAngle(i)=eAngle(j)+mod(i-1,nInterp)*(eAngle(j+1)-eAngle(j))/nInterp
 end do
 !******************************** Main Program *********************************
-do Proc=1,1!nProc !Loop through every process
-  do ChS=1,1!nChS !Loop through every charge state
-    do ionEng=1,1!nEnergies !Loop through every initial ion energy
+do Proc=1,nProc !Loop through every process
+  write(*,*) '---------- NEW PROCESS ----------'
+  do ChS=1,nChS !Loop through every charge state
+    write(*,*) '---------- NEW CHARGE STATE ----------'
+    write(*,*) " Proc   ChS Energy Simpson's      NSIM  Ratio"
+    do ionEng=1,nEnergies !Loop through every initial ion energy
       Eng=1 !Reset index
       do iEng=1,nInterpEng !Loop through all interpolated energies
         if(InterpEnergy(iEng).gt.eEnergy(Eng+1)) Eng=Eng+1 !Go to next Energy
@@ -127,11 +153,20 @@ do Proc=1,1!nProc !Loop through every process
       end do
       do Eng=1,neEnergies
         tmpe(Eng)=SDXSe(Proc,ChS,ionEng,Eng) !Create a single array for Simp
-        write(*,'(F10.3,2x,ES10.2E2,2x,F10.4,2x,ES10.2E2)')&
-        eEnergy(Eng),tmpe(Eng),dE(Eng),dE(Eng)*tmpe(Eng)
+        ! write(*,'(F10.3,2x,ES10.2E2,2x,F10.4,2x,ES10.2E2)')&
+        ! eEnergy(Eng),tmpe(Eng),dE(Eng),dE(Eng)*tmpe(Eng)
+      end do
+      do Ang=1,neAngles
+        tmpa(Ang)=SDXSa(Proc,ChS,ionEng,Ang)*sin(eAngleRad(Ang))!*2*pi
       end do
       call simp(neEnergies,dE,tmpe,integralSDXSe)
-      write(*,*) integralSDXSe
+      call simp(neAngles,dA,tmpa,integralSDXSa)
+      ! write(*,'(2x,A4,1x,I5,1x,1x,I5,2x,ES8.2E2,2x,ES8.2,1x,F6.2)') &
+      ! Processes(Proc),ChS-1,ionEng,integralSDXSe,NSIMxs(Proc,ChS,ionEng),&
+      ! integralSDXSe/NSIMxs(Proc,ChS,ionEng)
+      write(*,'(2x,A4,1x,I5,1x,1x,I5,2x,ES8.2E2,2x,ES8.2,1x,F6.2)') &
+      Processes(Proc),ChS-1,ionEng,integralSDXSa*2*pi,NSIMxs(Proc,ChS,ionEng),&
+      integralSDXSa*2*pi/NSIMxs(Proc,ChS,ionEng)
     end do !End of ion energy do-loop
   end do !End of charge state do-loop
 end do !End of processes do-loop
