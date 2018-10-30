@@ -243,6 +243,8 @@ end do !End of processes do-loop
 
 open(unit=200,file='./Electron_Dist/eProbFunc.dat') !Electron energy prob dist
 open(unit=201,file='./Electron_Dist/aProbFunc.dat') !Electron angle prob dist
+write(200,*) nInterpEng !Write out number of energy interpolations
+write(201,*) nInterpAng !Write out number of angle interpolations
 write(200,1000) InterpEnergy
 write(201,1000) InterpAngle
 write(200,1001) eProbFunc
