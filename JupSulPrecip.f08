@@ -51,6 +51,7 @@ integer i,j,k,l,m,n,run,ion !Do-loop variables
 integer atmosLen !"Length" of the atmosphere (3000 - -88 km) with 2 km steps
 integer nProjProc !Number of projectile processes
 integer nTargProc !Number of target processes
+integer neProc !Number of processes that eject electrons
 integer nEnergies !Number of inital energies
 integer nInterpEnergies !Number of interpolated energies
 integer nChS !Number of sulfur charge states from 0-16
@@ -59,6 +60,7 @@ integer SI,DI,TI,DA,SC,DC,TEX !Target processes
 
 parameter(nProjProc=4) !Number of projectile processes
 parameter(nTargProc=7) !Number of target processes
+parameter(neProc=6) !Number of processes that eject electrons
 parameter(nEnergies=9) !Number of inital energies
 parameter(nInterpEnergies=2000) !Number of interpolated energies
 parameter(nChS=17) !Number of charge states from 0-16
@@ -73,7 +75,7 @@ integer t1,t2,clock_maxTotal,clock_rateTotal !Used to calculate comp. time
 integer t3,t4,clock_max,clock_rate !Used to calculate comp. time
 real*8 hrs,min,sec
 
-!* Sulfur ion variables
+!* Sulfur ion variables:
 integer energy,trial,initChS,ChS,oldChS,dpt,excite,elect,disso,PID(2),nIons
 integer numSim
 real*8 incB,kappa,dE,dNTot,dZTot,E,pangle
@@ -84,7 +86,12 @@ real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxs
 !* SIMxs has an additonal projectile process which is no projectile process
 !* i.e. SI, SI+SS, SI+DS, SI+SPEX, SI+DPEX (respectively)
 
-!* Random Number Generator
+!* Ejected electron variables:
+integer neEnergies,neAngles !Number of electron energy and angles
+real*8,allocatable,dimension(:) :: eEnergy,eAngle
+real*8,allocatable,dimension(:,:,:,:) :: eProbFunc,aProbFunc
+
+!* Random Number Generator:
 integer k1,k2,lux,in
 parameter(k1=0,k2=0,lux=3) !lux set to 3 for optimal randomness and timeliness
 real ranVecA(10002)
@@ -129,13 +136,22 @@ SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
 SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
 !*********************** Ejected Electron Probabilities ************************
 !* Created by ReadElectDist.f08 and ProbDist.f08
-! open(unit=202,file='./NewElectronDist/ProbDistFunc/eprobfunc.dat',status='old')
-! open(unit=203,file='./NewElectronDist/ProbDistFunc/aprobfunc.dat',status='old')
-! read(202,*) eProbFunc
-! read(203,*) aProbFunc
-! close(202)
-! close(203)
-
+open(unit=204,file='./Electron_Dist/eprobfunc.dat',status='old')
+open(unit=205,file='./Electron_Dist/aprobfunc.dat',status='old')
+read(204,*) neEnergies !Number of ejected electron energies
+read(205,*) neAngles !Number of ejected electron angles
+allocate(eEnergy(neEnergies)) !Allocate electron energy array
+allocate(eAngle(neAngles)) !Allocate electron angle array
+allocate(eProbFunc(neProc,nChS,nEnergies,neEnergies)) !Electron energy prob func
+allocate(aProbFunc(neProc,nChS,nEnergies,neAngles)) !Electron angle prob func
+read(204,20400) eEnergy !Electron energy array
+read(205,20400) eAngle !Electron angle array
+read(204,20500) eProbFunc !Electron energy probability distribution function
+read(205,20500) aProbFunc !Electron angle probability distribution function
+close(204) !Close eProbFunc file
+close(205) !Close aProbFunc file
+20400 format(10(F8.3,1x)) !Formatting for energies and angles (ProbDist.f08)
+20500 format(10(ES9.3E2,1x)) !Formatting for probabilities (ProbDist.f08)
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
