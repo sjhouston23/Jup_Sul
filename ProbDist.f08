@@ -66,8 +66,8 @@ character(len=4),dimension(nProc) :: Processes
 data Energy/1,10,50,75,100,200,500,1000,2000/
 data Processes/'  SI','  DI','  TI','DCAI','  SS','  DS'/
 !******************* Get singly differential cross-sections ********************
-open(unit=101,file='./SDXSeall.dat') !If 0.0 values, need to change to 1.000E-30
-open(unit=102,file='./SDXSaall.dat') !If 0.0 values, need to change to 1.000E-30
+open(unit=101,file='./Electron_Dist/SDXSeall.dat') !0.0 values, change 1.000E-30
+open(unit=102,file='./Electron_Dist/SDXSaall.dat') !0.0 values, change 1.000E-30
 read(101,1000) eEnergy !Electron energies
 read(102,1000) eAngle !Electron angles
 read(101,1001) SDXSe !Singly differential cross-section data for electron energy
@@ -241,8 +241,8 @@ do Proc=1,nProc !Loop through every process
   end do !End of charge state do-loop
 end do !End of processes do-loop
 
-open(unit=200,file='./eProbFunc.dat')
-open(unit=201,file='./aProbFunc.dat')
+open(unit=200,file='./Electron_Dist/eProbFunc.dat') !Electron energy prob dist
+open(unit=201,file='./Electron_Dist/aProbFunc.dat') !Electron angle prob dist
 write(200,1000) InterpEnergy
 write(201,1000) InterpAngle
 write(200,1001) eProbFunc
