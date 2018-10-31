@@ -82,7 +82,7 @@ real*8,dimension(nTargProc,1+nProjProc) :: Prob
 
 real ranVecB(1) !Number from RNG
 !**************************** Initialize Variables *****************************
-Prob=0.0
+Prob=0.0;excite=0;elect=0;diss=0;PID=0;sumProb=0.0
 !******************************** Main Program *********************************
 !******************** Collision-Type Probability Calculation *******************
 !* Calculate the transition probabilities by taking the collision process XS and
@@ -142,7 +142,6 @@ end if
 !*
 !*******************************************************************************
 call ranlux(ranVecB,1) !Only need 1 random number every time there's a collision
-sumProb=0
 if(ranVecB(1).gt.0.99999)ranVecB(1)=ranVecB(1)-0.00001
 do tProc=1,nTargProc !Loop through every target process
   do pProc=1,nProjProc+1 !Loop through every projectile process plus 1
