@@ -55,8 +55,9 @@ integer neProc !Number of processes that eject electrons
 integer nEnergies !Number of inital energies
 integer nInterpEnergies !Number of interpolated energies
 integer nChS !Number of sulfur charge states from 0-16
-integer SS,DS,SPEX,DPEX !Projectile processes
 integer SI,DI,TI,DA,SC,DC,TEX !Target processes
+integer SS,DS,SPEX,DPEX !Projectile processes
+integer eSI,eDI,eTI,eDA,eSS,eDS !Electron ejection processes
 
 parameter(nProjProc=4) !Number of projectile processes
 parameter(nTargProc=7) !Number of target processes
@@ -65,7 +66,8 @@ parameter(nEnergies=9) !Number of inital energies
 parameter(nInterpEnergies=2000) !Number of interpolated energies
 parameter(nChS=17) !Number of charge states from 0-16
 parameter(SI=1,DI=2,TI=3,DA=4,SC=5,DC=6,TEX=7) !Target process numbers
-parameter(SS=1,DS=2,SPEX=3,DPEX=4) !Projectile process numbers
+parameter(SS=2,DS=3,SPEX=4,DPEX=5) !Projectile process numbers
+parameter(eSI=1,eDI=2,eTI=3,eDA=4,eSS=5,eDS=6) !Electron ejection processes
 parameter(atmosLen=1544) !Length of the atmosphere
 
 real*8 dum
@@ -76,11 +78,12 @@ integer t3,t4,clock_max,clock_rate !Used to calculate comp. time
 real*8 hrs,min,sec
 
 !* Sulfur ion variables:
-integer energy,trial,initChS,ChS,oldChS,dpt,excite,elect,disso,PID(2),nIons
-integer numSim
-real*8 incB,kappa,dE,dNTot,dZTot,E,pangle
+integer energy,trial,ChS_init,ChS,ChS_old,dpt,excite,elect,disso,PID(2),nIons
+integer numSim,maxDpt
+real*8 incB,kappa,dE,dN,dNTot,dZ,dZTot,E,pangle,SIMxsTotSP
 real*8,dimension(nEnergies) :: IonEnergy
 real*8,dimension(nChS,nInterpEnergies) :: SIMxs_Total
+real*8,dimension(nTargProc,1+nProjProc) :: collisions !Collision counter
 real*8,dimension(1+nProjProc,nChS,nInterpEnergies) :: SIMxs_Totaltmp
 real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxs
 !* SIMxs has an additonal projectile process which is no projectile process
@@ -88,8 +91,10 @@ real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxs
 
 !* Ejected electron variables:
 integer neEnergies,neAngles !Number of electron energy and angles
-real*8,allocatable,dimension(:) :: eEnergy,eAngle
-real*8,allocatable,dimension(:,:,:,:) :: eProbFunc,aProbFunc
+integer eProc !Electron process number
+integer nElect !Number of electron counter
+integer eBin !Electron energy bin in 2-stream format
+real*8 eEnergyTmp,eAngleTmp,eEnergy,eAngle
 
 !* Random Number Generator:
 integer k1,k2,lux,in
@@ -136,22 +141,22 @@ SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
 SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
 !*********************** Ejected Electron Probabilities ************************
 !* Created by ReadElectDist.f08 and ProbDist.f08
-open(unit=204,file='./Electron_Dist/eprobfunc.dat',status='old')
-open(unit=205,file='./Electron_Dist/aprobfunc.dat',status='old')
-read(204,*) neEnergies !Number of ejected electron energies
-read(205,*) neAngles !Number of ejected electron angles
-allocate(eEnergy(neEnergies)) !Allocate electron energy array
-allocate(eAngle(neAngles)) !Allocate electron angle array
-allocate(eProbFunc(neProc,nChS,nEnergies,neEnergies)) !Electron energy prob func
-allocate(aProbFunc(neProc,nChS,nEnergies,neAngles)) !Electron angle prob func
-read(204,20400) eEnergy !Electron energy array
-read(205,20400) eAngle !Electron angle array
-read(204,20500) eProbFunc !Electron energy probability distribution function
-read(205,20500) aProbFunc !Electron angle probability distribution function
-close(204) !Close eProbFunc file
-close(205) !Close aProbFunc file
-20400 format(10(F8.3,1x)) !Formatting for energies and angles (ProbDist.f08)
-20500 format(10(ES9.3E2,1x)) !Formatting for probabilities (ProbDist.f08)
+! open(unit=204,file='./Electron_Dist/eprobfunc.dat',status='old')
+! open(unit=205,file='./Electron_Dist/aprobfunc.dat',status='old')
+! read(204,*) neEnergies !Number of ejected electron energies
+! read(205,*) neAngles !Number of ejected electron angles
+! allocate(eEnergy(neEnergies)) !Allocate electron energy array
+! allocate(eAngle(neAngles)) !Allocate electron angle array
+! allocate(eProbFunc(neProc,nChS,nEnergies,neEnergies)) !Electron energy prob func
+! allocate(aProbFunc(neProc,nChS,nEnergies,neAngles)) !Electron angle prob func
+! read(204,20400) eEnergy !Electron energy array
+! read(205,20400) eAngle !Electron angle array
+! read(204,20500) eProbFunc !Electron energy probability distribution function
+! read(205,20500) aProbFunc !Electron angle probability distribution function
+! close(204) !Close eProbFunc file
+! close(205) !Close aProbFunc file
+! 20400 format(10(F8.3,1x)) !Formatting for energies and angles (ProbDist.f08)
+! 20500 format(10(ES9.3E2,1x)) !Formatting for probabilities (ProbDist.f08)
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
@@ -164,9 +169,9 @@ close(205) !Close aProbFunc file
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000, 10=5000,
 !* 11=10000, 12=25000
 !*******************************************************************************
-nIons=10!0 !Number of ions that are precipitating
+nIons=1!0 !Number of ions that are precipitating
 trial=3 !The seed for the RNG
-do run=4,4!nEnergies !Loop through different initial ion energies
+do run=7,7!nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=int(IonEnergy(run))
   write(*,*) "Number of ions:         ", nIons
@@ -181,9 +186,12 @@ do run=4,4!nEnergies !Loop through different initial ion energies
   allocate(angle(nIons)) !Want the same number of angles as ions
   call ranlux(angle,nIons) !Calculate all the angles to be used
 !********************* Reset Counters For New Ion Energies *********************
-  ! totHp =0;totalElect=0;tElectFwd =0;tElectBwd =0;SPvsEng=0.0    ;nSPions=0
-  ! totH2p=0;eCounts   =0;electFwdA =0;electBwdA =0;SigTotvsEng=0.0;maxDpt=0
-  ! H2Ex  =0;oxygen    =0;electFwdAE=0;electBwdAE=0;dEvsEng=0.0
+! totHp =0;totalElect=0;tElectFwd =0;tElectBwd =0;SPvsEng    =0.0;nSPions  =0
+! totH2p=0;eCounts   =0;electFwdA =0;electBwdA =0;SigTotvsEng=0.0;maxDpt   =0
+! H2Ex  =0;oxygen    =0;electFwdAE=0;electBwdAE=0;dEvsEng    =0.0;totalHp  =0.0
+! pHp =0.0;totalH2p=0.0;collisions=0;npHp      =0;npH2p        =0;OxyVsEng =0.0
+! pH2p=0.0;totO      =0;dNvsEng =0.0;oxygenCX=0.0;prode2stF  =0.0;prode2stB=0.0
+! NSIM  =0;SIM       =0
 !************************ Ion Precipitation Begins Here ************************
   ! write(*,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
   do ion=1,nIons !Each ion starts here
@@ -196,9 +204,9 @@ do run=4,4!nEnergies !Loop through different initial ion energies
                        !enough to allow the ion to lose all energy
     E=IonEnergy(run)   !Start with initial ion energy
     dE=0.0             !Energy loss
-    initChS=2          !1 is an initial charge state of 0, 2 is +1
-    ChS=initChS        !Set the charge state variable that will be changed
-    oldChS=initChS     !Need another charge state variable for energyLoss.f08
+    ChS_init=2         !1 is an initial charge state of 0, 2 is +1
+    ChS=ChS_init       !Set the charge state variable that will be changed
+    ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
     dZTot=3000.0       !Start from the top of the atmosphere
     dpt=4              !Depth of penetration for bins. (integer value)
@@ -212,7 +220,8 @@ do run=4,4!nEnergies !Loop through different initial ion energies
     ! write(*,*) 'Ion Number: ', ion, 'Pitch angle: ', pangle*90/acos(0.0)
     kappa=1.0/(cos(pangle)*cos(incB)) !Used to convert from ds to dz
     call ranlux(ranVecA,10002) !Get a random vector for collisions
-    do i=1,1!numSim !This loop repeats after each collision until E < 1 keV/u
+    do i=1,40!numSim !This loop repeats after each collision until E < 1 keV/u
+      write(*,*) '----------'
       ! !*****************************
       ! !Reset Variables:
       ! eEnergy=0.0;eEnergyTmp=0.0 !Ejected electron energy
@@ -220,10 +229,70 @@ do run=4,4!nEnergies !Loop through different initial ion energies
       ! addElect=0 ;processE  =0   !Ejected electron integers
       ! eAngleSS=0.0;eEnergySS=0.0
       ! eAngleDS=0.0;eEnergyDS=0.0
+      dN=0.0;dZ=0.0 !Change in column density and altitude
       ! !*****************************
-      call CollisionSim(int(E),SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
-      write(*,*) E,PID,ChS,excite,elect,disso
+      call CollisionSim(nint(E),SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
+      collisions(PID(1),PID(2))=collisions(PID(1),PID(2))+1 !Count collisions
+1000 continue
+      l=l+1
+      if(l.ge.10000)then
+        !Filling ranVecA with a huge amount of numbers is a big time waster
+        call ranlux(ranVecA,10002) !Only get ranVecA as needed
+        l=1 !Reset l back to 1 (Start at 1 because ranVecA(l) is called next)
+      end if
+      !Calculate how far ion moves before a collision (dN)
+      dN=-log(1-ranVecA(l))/SIMxs_Total(ChS_old,nint(E))
+      !Sometimes ranVecA is small enough to make DN 0
+      if(dN.lt.1.0)goto 1000 !Get a new dN
+      SIMxsTotSP=SIMxs_Total(ChS_old,nint(E)) !Used for stopping power calc.
+      dNTot=dNTot+dN !Total change in column density
+      do j=1,atmosLen !Loop through all of the atmosphere
+        if(dNTot.le.totalCD(j+1))then !Move to proper CD of atmosphere
+          !Calculate change in z based on the movement through the column dens.
+          dZ=log((cos(pangle)*dN/(totalDens(dpt)*H(dpt)))+1)*H(dpt)
+          dZTot=dZTot-dZ*1e-5 !Convert to km and keep subtracting from alt.
+          do k=1,atmosLen !Loop through the atmosphere again
+            if(dZTot.gt.altitude(k))then
+              dNTot=totalCD(k) !Check the purpose - So ion doesn't get stuck in a bin??
+              dpt=k !dpt is now the bin corresponding to depth
+              if(dpt.gt.maxDpt) maxDpt=dpt !Used to see how deep we go
+              goto 2000 !Get out of the do-loop that finds depth of penetration
+            end if !Altitude if-statemet
+          end do !Altitude do-loop
+          !If we get here, then the ion has went through the entire atmosphere
+          write(206,*)"JupOxyPrecip.f08: WARNING: Ion exited the bottom of the &
+                     atmosphere, proceeding to next ion."
+          goto 3000 !Continue on to the next ion
+        end if !Column density if-statement
+      end do !Column density do-loop
+2000 continue
+!*********************** Secondary Electron Calculations ***********************
+      nElect=0
+      do j=1,elect !Loop through all of the ejected electrons
+        if(PID(1).eq.SI.and.nElect.le.10)then !Single Ionization
+          eProc=eSI
+          nElect=nElect+10 !After one time, don't want to come back in here
+        elseif(PID(1).eq.DI.and.nElect.le.10)then !Double Ionization
+          eProc=eDI
+          nElect=nElect+5 !After two times, don't want to come back in here
+        elseif(PID(1).eq.TI.and.nElect.le.10)then !Transfer Ionization
+          eProc=eTI
+          nElect=nElect+10 !After one time, don't want to come back in here
+        elseif(PID(1).eq.DA.and.nElect.le.10)then !Double Capture Autoionization
+          eProc=eDA
+          nElect=nElect+10 !After one time, don't want to come back in here
+        elseif(PID(2).eq.SS.and.nElect.gt.11)then !Single Stripping
+          eProc=eSS
+        elseif(PID(2).eq.DS.and.nElect.gt.11)then !Double Stripping
+          eProc=eDS
+        end if
+        call EjectedElectron(E,eProc,ChS_old,eEnergyTmp,eAngleTmp,eBin)
+        nElect=nElect+1
+        ! write(*,*) E,eProc,ChS_old,eEnergyTmp,eAngleTmp,eBin,PID,elect
+        E=E-10
+      end do !End of electron ejection do loop
     end do !End of i=1,numSim loop (E < 1 keV/u)
+3000 continue
   end do !End of ion=1,nIons loop
 
 
@@ -238,7 +307,7 @@ do run=4,4!nEnergies !Loop through different initial ion energies
   hrs=int(real(t4-t3)/clock_rate/3600.0)
   min=int(((real(t4-t3)/clock_rate)-hrs*3600)/60)
   sec=mod(real(t4-t3)/clock_rate,60.0)
-  write(*,*) 'Individual run elapsed real time = ',hrs,':',min,':',sec
+  ! write(*,*) 'Individual run elapsed real time = ',hrs,':',min,':',sec
   deallocate(angle) !Angle variable is reallocated for each energy
 end do !run=1,nEnergies
 
@@ -247,9 +316,9 @@ call system_clock (t2,clock_rateTotal,clock_maxTotal) !Total elapsed time
 hrs=int(real(t2-t1)/clock_rateTotal/3600.0)
 min=int(((real(t2-t1)/clock_rateTotal)-hrs*3600)/60)
 sec=mod(real(t2-t1)/clock_rateTotal,60.0)
-write(*,*) '***************************************************************&
-            ****************************'
-write(*,*) 'Total elapsed real time =          ',hrs,':',min,':',sec
+! write(*,*) '***************************************************************&
+!             ****************************'
+! write(*,*) 'Total elapsed real time =          ',hrs,':',min,':',sec
 
 
 end program
