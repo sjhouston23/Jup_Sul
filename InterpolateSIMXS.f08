@@ -43,7 +43,7 @@ data ProjProcCap/'     ','+SS  ','+DS  ','+SPEX','+DPEX'/
 !**************************** Initialize Variables *****************************
 SIMxs=0.0;SIMxsInterp=0.0
 !******************************** Main Program *********************************
-open(unit=100,file='./SIMXS/SIMXSall.dat',status='old') !All SIMxs data in one file
+open(unit=100,file='./SIMXS/SIMXSall.dat',status='old')!All SIMxs data in a file
 read(100,*) !Skip first line
 read(100,1000) SIMxs !Read in all the data
 close(100) !Close the file
