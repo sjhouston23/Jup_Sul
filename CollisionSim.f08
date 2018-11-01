@@ -193,9 +193,9 @@ elseif(tProc.eq.TEX)then !Target Excitation
   disso=0
 end if !End of target processes
 if(pProc.eq.SS)then !Single Stripping
-  ChS=ChS+1
-  excite=excite
-  elect=elect+1
+  ChS=ChS+1 !Strips a single electron - charge state changes
+  excite=excite !No additional excitation
+  elect=elect+1 !Ejects an additional electron
 elseif(pProc.eq.DS)then !Double Stripping
   ChS=ChS+2
   excite=excite
