@@ -31,7 +31,7 @@ real,dimension(2) :: ranVecC
 real*8,dimension(nEnergies) :: IonEnergy
 real*8,allocatable,dimension(:),save :: eEnergy,eAngle
 real*8,allocatable,dimension(:,:,:,:),save :: eProbFunc,aProbFunc
-real*8 es,del(nE2strBins),E2str(nE2strBins) !2-Stream energy bin creation
+real*8,save :: es,del(nE2strBins),E2str(nE2strBins) !2-Stream energy bins
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
 data IonEnergy/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
@@ -39,11 +39,13 @@ data IonEnergy/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 data del/20*0.5,70*1.0,10*2.0,20*5.0,10*10.0,20*10.0,10*50.0,10*100.0,40*200.0,&
          10*400,10*1000,10*2000,10*5000,10*10000.0/
 !**************************** 2-Stream Bin Creation ****************************
+if(E2str(nE2strBins).gt.10000.0)goto 1001
 !2-Stream energy bins:
 do i=1,nE2strBins
   es=es+del(i)
   E2str(i)=Es
 end do
+1001 continue
 !*********************** Ejected Electron Probabilities ************************
 if(neEnergies.gt.100)goto 1000 !Only want to read the files once
 !* Created by ReadElectDist.f08 and ProbDist.f08
@@ -65,7 +67,8 @@ close(101) !Close aProbFunc file
 10001 format(10(ES9.3E2,1x)) !Formatting for probabilities (ProbDist.f08)
 1000 continue
 !******************************** Main Program *********************************
-
+!* Initialize:
+iBin=0;k=0;f=0.0;ranVecC=0.0;eBin=0
 do Eng=nEnergies,1,-1 !Loop through bins to get the correct ion energy bin
   if(E.ge.real(IonEnergy(Eng-1)+(IonEnergy(Eng)-IonEnergy(Eng-1))/2))then
     iBin = Eng !Get the ion energy bin number
@@ -145,12 +148,11 @@ do eAng=1,neAngles !Loop through all of the electron ejection angles
 end do !End second electron angle sample do loop
 6000 continue
 
-do eEng=1,nE2strBins
-  if(electron_energy.le.E2str(eEng))then
-    eBin=eEng !Make this more accurate by picking closest bin, not just most convenient bin
+do eEng=1,nE2strBins !Loop through the 2-stream energy bins
+  if(electron_energy.le.E2str(eEng))then !Pick out which bin we need
+    eBin=eEng !Assumes E2str(eEng) is the upper bound of the energy bin
     goto 7000
   end if
 end do
 7000 continue
-
 end subroutine
