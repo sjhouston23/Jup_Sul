@@ -55,6 +55,7 @@ integer neProc !Number of processes that eject electrons
 integer nEnergies !Number of inital energies
 integer nInterpEnergies !Number of interpolated energies
 integer nChS !Number of sulfur charge states from 0-16
+integer nE2strBins !Number of 2 stream bins
 integer SI,DI,TI,DA,SC,DC,TEX !Target processes
 integer SS,DS,SPEX,DPEX !Projectile processes
 integer eSI,eDI,eTI,eDA,eSS,eDS !Electron ejection processes
@@ -69,6 +70,7 @@ parameter(SI=1,DI=2,TI=3,DA=4,SC=5,DC=6,TEX=7) !Target process numbers
 parameter(SS=2,DS=3,SPEX=4,DPEX=5) !Projectile process numbers
 parameter(eSI=1,eDI=2,eTI=3,eDA=4,eSS=5,eDS=6) !Electron ejection processes
 parameter(atmosLen=1544) !Length of the atmosphere
+parameter(nE2strBins=260) !Number of 2 stream bins
 
 real*8 dum
 
@@ -94,7 +96,11 @@ integer neEnergies,neAngles !Number of electron energy and angles
 integer eProc !Electron process number
 integer nElect !Number of electron counter
 integer eBin !Electron energy bin in 2-stream format
+integer DSelect !Double stripping electron tracker for transform
 real*8 eEnergyTmp,eAngleTmp,eEnergy,eAngle
+real*8 eAngleSS,eEnergySS,eAngleDS(2),eEnergyDS(2) !SS/DS elec transforms
+integer(kind=int64) :: totalElect !Total Electrons
+integer(kind=int64),dimension(atmosLen,nE2strBins) :: electFwd,electBwd
 
 !* Random Number Generator:
 integer k1,k2,lux,in
@@ -139,24 +145,6 @@ close(203) !Close SIM cross-section data
 20300 format (20(ES9.3E2,1x)) !Formatting for the file
 SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
 SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
-!*********************** Ejected Electron Probabilities ************************
-!* Created by ReadElectDist.f08 and ProbDist.f08
-! open(unit=204,file='./Electron_Dist/eprobfunc.dat',status='old')
-! open(unit=205,file='./Electron_Dist/aprobfunc.dat',status='old')
-! read(204,*) neEnergies !Number of ejected electron energies
-! read(205,*) neAngles !Number of ejected electron angles
-! allocate(eEnergy(neEnergies)) !Allocate electron energy array
-! allocate(eAngle(neAngles)) !Allocate electron angle array
-! allocate(eProbFunc(neProc,nChS,nEnergies,neEnergies)) !Electron energy prob func
-! allocate(aProbFunc(neProc,nChS,nEnergies,neAngles)) !Electron angle prob func
-! read(204,20400) eEnergy !Electron energy array
-! read(205,20400) eAngle !Electron angle array
-! read(204,20500) eProbFunc !Electron energy probability distribution function
-! read(205,20500) aProbFunc !Electron angle probability distribution function
-! close(204) !Close eProbFunc file
-! close(205) !Close aProbFunc file
-! 20400 format(10(F8.3,1x)) !Formatting for energies and angles (ProbDist.f08)
-! 20500 format(10(ES9.3E2,1x)) !Formatting for probabilities (ProbDist.f08)
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
@@ -166,8 +154,7 @@ SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
 !* 12=750, 13=1000, 14=1250, 15=1500, 16=1750, 17=2000, 18=2500, 19=3000,
 !* 20=4000, 21=5000, 22=10000, 23=25000
 !* Regular:
-!* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000, 10=5000,
-!* 11=10000, 12=25000
+!* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
 nIons=1!0 !Number of ions that are precipitating
 trial=3 !The seed for the RNG
@@ -222,15 +209,10 @@ do run=7,7!nEnergies !Loop through different initial ion energies
     call ranlux(ranVecA,10002) !Get a random vector for collisions
     do i=1,40!numSim !This loop repeats after each collision until E < 1 keV/u
       write(*,*) '----------'
-      ! !*****************************
-      ! !Reset Variables:
-      ! eEnergy=0.0;eEnergyTmp=0.0 !Ejected electron energy
-      ! eAngle =0.0;ds        =1   !Double stripping electron angle variable
-      ! addElect=0 ;processE  =0   !Ejected electron integers
-      ! eAngleSS=0.0;eEnergySS=0.0
-      ! eAngleDS=0.0;eEnergyDS=0.0
+      !*****************************
+      !Reset Variables:
       dN=0.0;dZ=0.0 !Change in column density and altitude
-      ! !*****************************
+      !*****************************
       call CollisionSim(nint(E),SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
       collisions(PID(1),PID(2))=collisions(PID(1),PID(2))+1 !Count collisions
 1000 continue
@@ -267,34 +249,74 @@ do run=7,7!nEnergies !Loop through different initial ion energies
       end do !Column density do-loop
 2000 continue
 !*********************** Secondary Electron Calculations ***********************
-      nElect=0
+      !*****************************
+      !Reset Variables:
+      eEnergy =0.0;eEnergyTmp=0.0 !Ejected electron energy
+      eAngle  =0.0;eAngleTmp =0.0 !Ejected electron angle
+      eAngleSS=0.0;eEnergySS =0.0 !Single stripping transform variables
+      eAngleDS=0.0;eEnergyDS =0.0 !Double stripping transform variables
+      nElect  =0  ;eProc     =0   !Ejected electron integers
+      DSelect =1                  !Double stripping electron counter
+      !*****************************
+      if(PID(1).eq.SC.or.PID(1).eq.DC.or.PID(1).eq.TEX)nElect=12 !No electrons
       do j=1,elect !Loop through all of the ejected electrons
         if(PID(1).eq.SI.and.nElect.le.10)then !Single Ionization
-          eProc=eSI
+          eProc=eSI !1
           nElect=nElect+10 !After one time, don't want to come back in here
         elseif(PID(1).eq.DI.and.nElect.le.10)then !Double Ionization
-          eProc=eDI
+          eProc=eDI !2
           nElect=nElect+5 !After two times, don't want to come back in here
         elseif(PID(1).eq.TI.and.nElect.le.10)then !Transfer Ionization
-          eProc=eTI
+          eProc=eTI !3
           nElect=nElect+10 !After one time, don't want to come back in here
         elseif(PID(1).eq.DA.and.nElect.le.10)then !Double Capture Autoionization
-          eProc=eDA
+          eProc=eDA !4
           nElect=nElect+10 !After one time, don't want to come back in here
         elseif(PID(2).eq.SS.and.nElect.gt.11)then !Single Stripping
-          eProc=eSS
+          eProc=eSS !5
         elseif(PID(2).eq.DS.and.nElect.gt.11)then !Double Stripping
-          eProc=eDS
+          eProc=eDS !6
         end if
         call EjectedElectron(E,eProc,ChS_old,eEnergyTmp,eAngleTmp,eBin)
         nElect=nElect+1
-        ! write(*,*) E,eProc,ChS_old,eEnergyTmp,eAngleTmp,eBin,PID,elect
-        E=E-10
-      end do !End of electron ejection do loop
+        if(eProc.eq.5)then
+          eAngleSS=eAngleTmp !Need the ejection angle for energy transformation
+          eEnergySS=eEnergyTmp
+        end if
+        if(eProc.eq.6)then
+          eAngleDS(DSelect)=eAngleTmp
+          eEnergyDS(DSelect)=eEnergyTmp
+          DSelect=DSelect+1 !Double stripping electron
+        end if
+        totalElect=totalElect+1 !Total number of electrons produced
+        eAngle=eAngleTmp+(pangle*90/acos(0.0))
+        !Must add the pitch angle to ejected elect angle. pangle = [0,acos(0.0)]
+        if(eAngle.le.90.0)then !Counting electrons going forward (downward)
+          electFwd(dpt,eBin)=electFwd(dpt,eBin)+1 !Elect fwd vs. alt. and eng.
+        elseif(eAngle.le.270.0)then !Electrons going backward (0 is down)
+          electBwd(dpt,eBin)=electBwd(dpt,eBin)+1 !Elect bwd vs. alt. and eng.
+        else !If the electron is ejected so far backward it's going fwd again
+          write(206,*) "JupOxyPrecip.f08: WARNING: Elect ejection angle &
+                        greater than 270 degrees."
+        end if
+        !Only want to add the electron energies for the some processes since SS
+        !and DS have to be transformed into a different reference frame
+        if(eProc.le.4)eEnergy=eEnergy+eEnergyTmp
+      end do !End of electron ejection do loop (j=1,elect)
+!************************** Energy Loss Calculations ***************************
+      call energyloss(E,ChS_old,eEnergy,PID,eEnergySS,eAngleSS,&
+                      eEnergyDS,eAngleDS,dE)
+      write(*,*) dE
+      ! dEsp=(dE)/dN !stopping power (calc before dE is recalculated)
+      ! dEold=dE
+      ! dE=(1/mass)*(1.0e-3)*(dE+stpnuc(E)*dN)*kappa !Total dE function
+      ! if(dN.lt.0.0)then !Change in column density should never be less than 0
+      !   write(206,10001) E,dEsp,dE,dN,dEold,process,PID(1),PID(2),tempQold
+      ! end if
+
     end do !End of i=1,numSim loop (E < 1 keV/u)
 3000 continue
   end do !End of ion=1,nIons loop
-
 
 
 
