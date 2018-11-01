@@ -10,6 +10,34 @@ subroutine EjectedElectron(E,Proc,ChS,electron_energy,electron_angle,eBin)
 !* that used in CollisionSim.f08 is used to calculate the ejected
 !* electron's energy and angle.
 !*******************************************************************************
+!*
+!* 	Input:
+!*		E --> Energy of ions
+!*		Type: Real
+!*		Units: keV/u
+!*
+!*		Proc --> Process
+!*		Type: Integer
+!*		Units: None
+!*
+!*		ChS --> Charge state
+!*		Type: Integer
+!*		Units: None
+!*
+!*  Returns:
+!*    electron_energy --> energy of ejected electron
+!*    Type: Real
+!*    Units: eV
+!*
+!*    electron_angle --> angle of ejected electron
+!*    Type: Real
+!*    Units: Degrees (0-180)
+!*
+!*    eBin --> 2-Stream electron energy bin
+!*    Type: integer
+!*    Units: None
+!*
+!*******************************************************************************
 
 implicit real*8(a-h,o-z)
 
@@ -33,7 +61,7 @@ real*8,allocatable,dimension(:),save :: eEnergy,eAngle
 real*8,allocatable,dimension(:,:,:,:),save :: eProbFunc,aProbFunc
 real*8,save :: es,del(nE2strBins),E2str(nE2strBins) !2-Stream energy bins
 !****************************** Data Declaration *******************************
-!* Initial ion enegy input:
+!* Initial ion energy input:
 data IonEnergy/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 !dE for each 2-Stream energy bin. Must match two stream code binning
 data del/20*0.5,70*1.0,10*2.0,20*5.0,10*10.0,20*10.0,10*50.0,10*100.0,40*200.0,&
@@ -70,7 +98,7 @@ close(101) !Close aProbFunc file
 !* Initialize:
 iBin=0;k=0;f=0.0;ranVecC=0.0;eBin=0
 do Eng=nEnergies,1,-1 !Loop through bins to get the correct ion energy bin
-  if(E.ge.real(IonEnergy(Eng-1)+(IonEnergy(Eng)-IonEnergy(Eng-1))/2))then
+  if(E.ge.real(IonEnergy(Eng-1)+(IonEnergy(Eng)-IonEnergy(Eng-1))/2.0))then
     iBin = Eng !Get the ion energy bin number
     k = 1 !Used to get an interpolation function
     goto 2000
@@ -89,7 +117,7 @@ if (k.eq.2) f=(E-IonEnergy(iBin))/(IonEnergy(iBin+1)-IonEnergy(iBin))
 ! write(*,*) E,IonEnergy(iBin),iBin,k,f
 
 call ranlux(ranVecC,2) !Random number vector
-
+!* Initialize:
 electron_energy = 0.0 !Initialize ejected electron energy
 electron_energytmp1 = 0.0 !Will calculate two different electron energies for
 electron_energytmp2 = 0.0 ! a simple linear interpolation
