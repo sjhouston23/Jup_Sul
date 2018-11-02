@@ -54,7 +54,7 @@ parameter(nE2strBins=260) !Number of 2 stream bins
 
 integer Eng,eEng,eAng
 integer iBin !IonEnergy bin
-integer,save :: neEnergies
+save :: neEnergies,neAngles
 real,dimension(2) :: ranVecC
 real*8,dimension(nEnergies) :: IonEnergy
 real*8,allocatable,dimension(:),save :: eEnergy,eAngle
@@ -175,7 +175,7 @@ do eAng=1,neAngles !Loop through all of the electron ejection angles
   end if !End of Monte Carlo if statement
 end do !End second electron angle sample do loop
 6000 continue
-
+! write(*,*) Proc,ChS,IonEnergy(iBin),electron_energy,electron_angle
 do eEng=1,nE2strBins !Loop through the 2-stream energy bins
   if(electron_energy.le.E2str(eEng))then !Pick out which bin we need
     eBin=eEng !Assumes E2str(eEng) is the upper bound of the energy bin
