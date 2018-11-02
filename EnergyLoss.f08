@@ -222,7 +222,6 @@ if (iBin.eq.0) write(*,*) 'EnergyLoss.f08: Error! iBin=0'
 !* lie between energy bins.
 if (k.eq.1) f=(E-IonEnergy(iBin-1))/(IonEnergy(iBin)-IonEnergy(iBin-1))
 if (k.eq.2) f=(E-IonEnergy(iBin))/(IonEnergy(iBin+1)-IonEnergy(iBin))
-! write(*,*) E,IonEnergy(iBin),iBin,k,f,PID
 
 !* Initialize:
 dE=0.0;electEnergyAU1=0.0;Vproj=0.0;Vz=0.0;Vsquared=0.0;electEnergySS=0.0
