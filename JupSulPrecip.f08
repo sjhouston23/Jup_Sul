@@ -42,17 +42,18 @@ program SulfurIonPrecip
 !*******************************************************************************
 
 use,intrinsic :: ISO_FORTRAN_ENV !Used for int64 integers
-!use formatting !Formatting module to avoid cluttering the end of the program
+use formatting !Formatting module to avoid cluttering the end of the program
 implicit none
 
 !**************************** Variable Declaration *****************************
 !* Do-loop variables:
-integer i,j,k,l,m,n,run,ion
+integer i,j,k,l,run,ion
 
 !* Computational time variables:
 integer t1,t2,clock_maxTotal,clock_rateTotal !Used to calculate comp. time
 integer t3,t4,clock_max,clock_rate !Used to calculate comp. time
-real*8 hrs,min,sec
+integer hrs,min
+real sec
 
 !* Atmosphere variables:
 integer atmosLen !"Length" of the atmosphere (3000 - -88 km) with 2 km steps]
@@ -94,12 +95,12 @@ integer numSim,maxDpt
 integer(kind=int64) :: SulVsEng(nChS,nSulEngBins) !Charge state fractions
 real*8 engBins(nSulEngBins),SulEngBins(nSulEngBins) !Sulfur energy bins
 
+integer(kind=int64),dimension(nTargProc,1+nProjProc) :: collisions !Counter
 real*8 incB,kappa,dE,dN,dNTot,dZ,dZTot,E,pangle,SIMxsTotSP
-real*8,dimension(nEnergies) :: IonEnergy
-real*8,dimension(nChS,nInterpEnergies) :: SIMxs_Total
-real*8,dimension(nTargProc,1+nProjProc) :: collisions !Collision counter
+real*8,dimension(nEnergies) :: IonEnergy !Initial ion energies
+real*8,dimension(nChS,nInterpEnergies) :: SIMxs_Total !SigTot for dN calculation
 real*8,dimension(1+nProjProc,nChS,nInterpEnergies) :: SIMxs_Totaltmp
-real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxs
+real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxs !All SIMxs
 !* SIMxs has an additonal projectile process which is no projectile process
 !* i.e. SI, SI+SS, SI+DS, SI+SPEX, SI+DPEX (respectively)
 
@@ -121,13 +122,23 @@ real*8 eAngleSS,eEnergySS,eAngleDS(2),eEnergyDS(2) !SS/DS elec transforms
 integer(kind=int64) :: totalElect !Total Electrons
 integer(kind=int64),dimension(atmosLen,nE2strBins) :: electFwd,electBwd
 
+!* Output production variables:
+integer(kind=int64),dimension(nTargProc,1+nProjProc,nChS,atmosLen) :: Sulfur
+integer(kind=int64),dimension(atmosLen) :: Hp,H2p !H+ and H2+ counts
+integer(kind=int64) :: H2Ex(atmosLen) !Excited H2 counter
+real*8 norm !Normalization variable to per ion per cm
+real dissRan !Random number to determine dissociation probability
+
 !* Random Number Generator:
 integer k1,k2,lux,in
 parameter(k1=0,k2=0,lux=3) !lux set to 3 for optimal randomness and timeliness
-real ranVecA(10002)
+real ranVecA(1002)
 real,allocatable :: angle(:)
 
-
+!* Output Variables:
+integer nOutputFiles !Number of output files
+parameter(nOutputFiles=5)
+character(len=100) filename,files(nOutputFiles) !Output file names
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
 data IonEnergy/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
@@ -139,6 +150,8 @@ data IonEnergy/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 !                108.018,120.647,139.90,162.223,188.108,218.125,262.319,315.467,&
 !                379.384,456.250/ !JEDI energy bins interpolated
 data engBins/nSulEngBins*SulEngBinSize/ !Used for sulfur binning
+data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
+          &'Collisions'/
 !********************************** Run Time ***********************************
 !Calculate the total computational run time of the model:
 call system_clock (t1,clock_rateTotal,clock_maxTotal)
@@ -201,16 +214,15 @@ end do
 !* Regular:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-nIons=150 !Number of ions that are precipitating
-trial=3 !The seed for the RNG
-do run=nEnergies,nEnergies !Loop through different initial ion energies
+nIons=1 !Number of ions that are precipitating
+trial=5 !The seed for the RNG
+do run=2,2!,nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=int(IonEnergy(run))
-  write(*,*) "Number of ions:         ", nIons
-  write(*,*) "Initial energy:         ", energy, 'keV'
-  write(*,*) "Trial number (RNG Seed):", trial
-  write(*,*) "***************************************************************&
-             &****************************"
+  write(*,*) "Number of ions:         ",nIons
+  write(*,*) "Initial energy:         ",energy,'keV/u'
+  write(*,*) "Trial number (RNG Seed):",trial
+  write(*,F3) !'**'
 !*************************** Random Number Generator ***************************
   !k1=0,k2=0 Should be set to zero unless restarting at a break (See ranlux.f08)
   in=trial !RNG seed
@@ -218,13 +230,12 @@ do run=nEnergies,nEnergies !Loop through different initial ion energies
   allocate(angle(nIons)) !Want the same number of angles as ions
   call ranlux(angle,nIons) !Calculate all the angles to be used
 !********************* Reset Counters For New Ion Energies *********************
-! totHp =0;totalElect=0;tElectFwd =0;tElectBwd =0;SPvsEng    =0.0;nSPions  =0
-! totH2p=0;eCounts   =0;electFwdA =0;electBwdA =0;SigTotvsEng=0.0;maxDpt   =0
-! H2Ex  =0;oxygen    =0;electFwdAE=0;electBwdAE=0;dEvsEng    =0.0;totalHp  =0.0
-! pHp =0.0;totalH2p=0.0;collisions=0;npHp      =0;npH2p        =0;OxyVsEng =0.0
+Hp =0;totalElect=0
+H2p=0;Sulfur    =0;electFwd  =0;electBwd  =0;maxDpt   =0
+H2Ex  =0;collisions=0;SulVsEng  =0
+! pHp =0.0;totalH2p=0.0;collisions=0;npHp      =0;npH2p        =0
 ! pH2p=0.0;totO      =0;dNvsEng =0.0;oxygenCX=0.0;prode2stF  =0.0;prode2stB=0.0
-! NSIM  =0;SIM       =0
-SulVsEng=0
+!SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SigTotvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
   write(*,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
   do ion=1,nIons !Each ion starts here
@@ -236,7 +247,7 @@ SulVsEng=0
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
     E=IonEnergy(run)   !Start with initial ion energy
-    ChS_init=nChS         !1 is an initial charge state of 0, 2 is +1
+    ChS_init=2        !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
@@ -249,9 +260,9 @@ SulVsEng=0
     !*****************************
     pangle=(2.0*atan(1.0))-acos(angle(ion)) !Pitch angle calculation has a
     !cosine dist. Straight down is pitch angle of 0, random number must be 0
-    write(*,*) 'Ion Number: ', ion, 'Pitch angle: ', pangle*90/acos(0.0)
+    write(*,*) 'Ion Number: ',ion,' Pitch angle: ',pangle*90/acos(0.0)
     kappa=1.0/(cos(pangle)*cos(incB)) !Used to convert from ds to dz
-    call ranlux(ranVecA,10002) !Get a random vector for collisions
+    call ranlux(ranVecA,1002) !Get a random vector for collisions
     do i=1,numSim !This loop repeats after each collision until E < 1 keV/u
       !*****************************
       !Reset Variables:
@@ -261,9 +272,9 @@ SulVsEng=0
       collisions(PID(1),PID(2))=collisions(PID(1),PID(2))+1 !Count collisions
 1000 continue
       l=l+1
-      if(l.ge.10000)then
+      if(l.ge.1000)then
         !Filling ranVecA with a huge amount of numbers is a big time waster
-        call ranlux(ranVecA,10002) !Only get ranVecA as needed
+        call ranlux(ranVecA,1002) !Only get ranVecA as needed
         l=1 !Reset l back to 1 (Start at 1 because ranVecA(l) is called next)
       end if
       !Calculate how far ion moves before a collision (dN)
@@ -347,6 +358,36 @@ SulVsEng=0
         !and DS have to be transformed into a different reference frame
         if(eProc.le.4)eEnergy=eEnergy+eEnergyTmp !Units of eV
       end do !End of electron ejection do loop (j=1,elect)
+!************************* Counting Photon Production **************************
+!* Note:
+!*  A photon count at a specific altitude and charge state means that there was
+!*  a photon producing collision at that specific altitude and the resultant ion
+!*  was at the recorded charge state. That means, a collision that goes from
+!*  S^8+ to S^7+ will be recorded as S^7+; therefore, the S^16+ bin will never
+!*  produce a photon. The last bin should ALWAYS be 0. Each processes can only
+!*  create one photon, if it's a photon producing collision.
+!*  Direct excitation (photonsDE) producing collisions:
+!*    TEX+SPEX(27) ,SI+SPEX(29), DI+SPEX(32)
+!*  Charge exchange (photonsCX) producing collisions:
+!*    SC+SS(19), TI(25), SC(30)
+!*  This is all done in the writing of the output files. Photon productions are
+!*  files 118 and 119 using the sulfur variable.
+!*******************************************************************************
+!********************** Counting Sulfur & H/H2 Production **********************
+      Sulfur(PID(1),PID(2),ChS,dpt)=Sulfur(PID(1),PID(2),ChS,dpt)+1 !Sulfur prod
+      !Sulfur variable is what shows photon production, depending on processes
+      if(disso.eq.2)then
+        Hp(dpt)=Hp(dpt)+2 !Number of H^+ produced
+      elseif(disso.eq.1)then
+        call ranlux(dissRan,1) !Random number to determine dissociation
+        if(dissRan.le.0.1)then !10% chance of dissociation (H + H^+)
+          Hp(dpt)=Hp(dpt)+1
+        else !90% chance of no dissociation
+          H2p(dpt)=H2p(dpt)+1
+        end if
+      elseif(disso.eq.0)then !TEX never dissociates, result is H2*
+        H2Ex(dpt)=H2Ex(dpt)+1
+      end if
 !************************** Energy Loss Calculations ***************************
       call energyloss(E,ChS_old,eEnergy,PID,eEnergySS,eAngleSS,&
                      &eEnergyDS,eAngleDS,dE)
@@ -375,15 +416,62 @@ SulVsEng=0
     end do !End of i=1,numSim loop (E < 1 keV/u)
 4000 continue
   end do !End of ion=1,nIons loop
-  open(unit=100,file='./Output/ChargeStateDistribution.dat')
-  ! totO=sum(SulVsEng,dim=1)
-  ! write(104,H04) !Sul vs energy header
-  do i=1,nSulEngBins !Sulfur charge state distribution
-    write(100,10000) SulEngBins(i)-(SulEngBinSize/2.0), &
-                    &(real(SulVsEng(j,i))/real(sum(SulVsEng(:,i))),j=1,nChS)
+!******************************** Output Header ********************************
+  write(*,*)"--------------------------NEW RUN---------------------------"
+  write(*,*)"Number of ions: ", nIons
+  write(*,*)"Initial energy: ", energy, 'keV'
+  write(*,*)"Trial number:   ", trial
+  write(*,F3) !'**'
+  !******* Check various electron counters
+  write(*,*)'Sum of total electrons foward:         ',sum(electFwd)
+  write(*,*)'Sum of total electrons backward:       ',sum(electBwd)
+  write(*,*)'Sum of total electrons foward+backward:',sum(electFwd+electBwd)
+  write(*,*)'Sum of total electrons:                ',totalElect
+  write(*,F1)'Max Depth:',altitude(maxDpt)
+!********** Open output data files for each set of initial energies ************
+  do i=1,nOutputFiles
+    write(filename,"('./Output/',I0,'/',A,'-',I0,'.dat')")&
+    &energy,trim(files(i)),trial
+    open(unit=100+i,file=trim(filename))
   end do
-  close(100)
-  10000 format (1x,F8.2,5x,17(2x,ES8.2))
+!***************************** Write out to files ******************************
+  norm=nIons*2e5 !Normalization condition to per ion per cm
+  write(101,H01) !Sulfur charge state distribution header
+  do i=2,nSulEngBins !Sulfur charge state distribution
+    write(101,F01) SulEngBins(i)-(SulEngBinSize/2.0),&
+    &(real(SulVsEng(j,i))/real(sum(SulVsEng(:,i))),j=1,nChS)
+  end do
+  write(102,H02) !H^+ Header
+  write(103,H03) !H_2^+ Header
+  write(104,H04) !H_2^* Header
+  do i=1,atmosLen !Loop through the atmosphere
+    write(102,F02) altitude(i),Hp(i)/norm !H^+ production
+    write(103,F02) altitude(i),H2p(i)/norm !H_2^+ production
+    write(104,F02) altitude(i),H2Ex(i)/norm !H_2^* production
+  end do
+
+  write(105,F03) (ProjColl(i),i=1,nProjProc) !Collisions header
+  do i=1,nTargProc !Total number of each type of collision
+    write(105,F04) TargColl(i),(collisions(i,j),j=1,5),sum(collisions(i,:))
+  end do
+  write(105,F4) !'--'
+  write(105,F04) 'Sum ',(sum(collisions(:,i)),i=1,nProjProc+1),sum(collisions)
+  write(105,*) ''
+  write(105,F03) (ProjColl(i),i=1,nProjProc) !Collisions precentage header
+  do i=1,nTargProc !Total number of each type of collision
+    write(105,F05) TargColl(i),&
+    &(real(collisions(i,j))/real(sum(collisions))*100,j=1,5),&
+    &real(sum(collisions(i,:)))/real(sum(collisions))*100
+  end do
+  write(105,F4) !'--'
+  write(105,F05) 'Sum ',&
+  &(real(sum(collisions(:,i)))/real(sum(collisions))*100,i=1,nProjProc+1),&
+  &real(sum(collisions))/real(sum(collisions))*100
+
+!******************************* Close all files *******************************
+  do i=1,nOutputFiles
+    close(100+i)
+  end do
 
   call system_clock(t4,clock_rate,clock_max) !Elapsed time for a single energy
   hrs=int(real(t4-t3)/clock_rate/3600.0)
@@ -398,9 +486,8 @@ call system_clock (t2,clock_rateTotal,clock_maxTotal) !Total elapsed time
 hrs=int(real(t2-t1)/clock_rateTotal/3600.0)
 min=int(((real(t2-t1)/clock_rateTotal)-hrs*3600)/60)
 sec=mod(real(t2-t1)/clock_rateTotal,60.0)
-write(*,*) '***************************************************************&
-            ****************************'
-write(*,*) 'Total elapsed real time =          ',hrs,':',min,':',sec
+write(*,F3) !'**'
+write(*,F2) 'Total elapsed real time = ',hrs,min,sec
 
 
 end program
