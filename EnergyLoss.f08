@@ -72,7 +72,7 @@ integer SS,DS,SPEX,DPEX !Projectile processes
 real*8 IP1,IP2 !First two ionization potentials for H2
 real*8 pi,c,sMass !Speed of light and oxygen mass (29.8685e6 keV/c^2)
 real*8 auCon !eV to a.u. conversion (1 a.u. = 27.2116 eV)
-real*8 alpha !Fine-structure constant (1/137)
+! real*8 alpha !Fine-structure constant (1/137)
 real*8 ThetaP !Theta in the projectile frame
 
 parameter(nChS=17) !Number of charge states from 0-16
@@ -225,19 +225,20 @@ if (k.eq.2) f=(E-IonEnergy(iBin))/(IonEnergy(iBin+1)-IonEnergy(iBin))
 ! write(*,*) E,IonEnergy(iBin),iBin,k,f,PID
 
 !* Initialize:
-dE=0.0
+dE=0.0;electEnergyAU1=0.0;Vproj=0.0;Vz=0.0;Vsquared=0.0;electEnergySS=0.0
+ThetaP=0.0;electEnergyDS1=0.0;electEnergyDS2=0.0;electEnergyAU2=0.0
 
 !* Find the dE for the given process based on Schultz et al. 2018 Table 1
 !* Go through the "target" processes
 if(PID(1).eq.SI)then !Single Ionization
-  dE=IP1+electEnergy
+  dE=IP1+eEnergy
 elseif(PID(1).eq.DI)then !Double Ionization
-  dE=IP1+IP2+electEnergy !Both electron energies have been added together
+  dE=IP1+IP2+eEnergy !Both electron energies have been added together
 elseif(PID(1).eq.TI)then !Transfer Ionization
-  if(f.ge.0.5)dE=IP1+electenergy+(f*dETI(iBin,ChS)+(1-f)*dETI(iBin-1,ChS))
-  if(f.lt.0.5)dE=IP1+electenergy+(f*dETI(iBin+1,ChS)+(1-f)*dETI(iBin,ChS))
+  if(f.ge.0.5)dE=IP1+eEnergy+(f*dETI(iBin,ChS)+(1-f)*dETI(iBin-1,ChS))
+  if(f.lt.0.5)dE=IP1+eEnergy+(f*dETI(iBin+1,ChS)+(1-f)*dETI(iBin,ChS))
 elseif(PID(1).eq.DA)then !Double-Capture Autoionization
-  dE=electEnergy
+  dE=eEnergy
 elseif(PID(1).eq.SC)then !Single Capture
   if(f.ge.0.5)dE=(f*dESC(iBin,ChS)+(1-f)*dESC(iBin-1,ChS))
   if(f.lt.0.5)dE=(f*dESC(iBin+1,ChS)+(1-f)*dESC(iBin,ChS))
@@ -253,7 +254,7 @@ end if
 !* et al. 2018, Appendix B
 if(PID(2).eq.SS)then !Single Stripping
   electEnergyAU1=eEnergySS/auCon !Convert to a.u.
-  Vproj=sqrt(2.0*E*16.0/oMass)*c !In a.u.
+  Vproj=sqrt(2.0*E*16.0/sMass)*c !In a.u.
   Vz=sqrt(2.0*electEnergyAU1)*cos(eAngleSS*pi/180.0)-Vproj !In a.u.
   Vsquared=(2*electEnergyAU1)-(2*Vz*Vproj)-Vproj**2 !Electron velocity squared
   electEnergySS=(0.5)*Vsquared*auCon !Convert back to eV
@@ -261,12 +262,12 @@ if(PID(2).eq.SS)then !Single Stripping
   dE=dE+IP(ChS)+electEnergySS
 elseif(PID(2).eq.DS)then !Double Stripping
   electEnergyAU1=eEnergyDS(1)/auCon !Convert to a.u.
-  Vproj=sqrt(2.0*E*16.0/oMass)*c !In a.u.
+  Vproj=sqrt(2.0*E*16.0/sMass)*c !In a.u.
   Vz=sqrt(2.0*electEnergyAU1)*cos(eAngleDS(1)*pi/180.0)-Vproj !In a.u.
   Vsquared=(2*electEnergyAU1)-(2*Vz*Vproj)-Vproj**2 !Electron velocity squared
   electEnergyDS1=(0.5)*Vsquared*auCon !Convert back to eV
   electEnergyAU2=eEnergyDS(2)/auCon !Convert to a.u.
-  Vproj=sqrt(2.0*E*16.0/oMass)*c !In a.u.
+  Vproj=sqrt(2.0*E*16.0/sMass)*c !In a.u.
   Vz=sqrt(2.0*electEnergyAU2)*cos(eAngleDS(2)*pi/180.0)-Vproj !In a.u.
   Vsquared=(2*electEnergyAU2)-(2*Vz*Vproj)-Vproj**2 !Electron velocity squared
   electenergyDS2=(0.5)*Vsquared*auCon !Convert back to eV
