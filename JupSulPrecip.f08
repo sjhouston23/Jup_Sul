@@ -79,8 +79,8 @@ parameter(nEnergies=9,nInterpEnergies=2000)
 integer SI,DI,TI,DA,SC,DC,TEX !Target processes
 parameter(SI=1,DI=2,TI=3,DA=4,SC=5,DC=6,TEX=7)
 
-integer SS,DS,SPEX,DPEX !Projectile processes
-parameter(SS=2,DS=3,SPEX=4,DPEX=5)
+integer noPP,SS,DS,SPEX,DPEX !Projectile processes + no projectile process(noPP)
+parameter(noPP=1,SS=2,DS=3,SPEX=4,DPEX=5)
 
 integer nSulEngBins !Number of energy bins for charge state fractions
 real*8 SulEngBinSize !Size of energy bins for charge state fractions
@@ -96,6 +96,7 @@ integer(kind=int64) :: SulVsEng(nChS,nSulEngBins) !Charge state fractions
 real*8 engBins(nSulEngBins),SulEngBins(nSulEngBins) !Sulfur energy bins
 
 integer(kind=int64),dimension(nTargProc,1+nProjProc) :: collisions !Counter
+integer(kind=int64),dimension(nTargProc,1+nProjProc,nChS,atmosLen) :: Sulfur
 real*8 incB,kappa,dE,dN,dNTot,dZ,dZTot,E,pangle,SIMxsTotSP
 real*8,dimension(nEnergies) :: IonEnergy !Initial ion energies
 real*8,dimension(nChS,nInterpEnergies) :: SIMxs_Total !SigTot for dN calculation
@@ -123,7 +124,6 @@ integer(kind=int64) :: totalElect !Total Electrons
 integer(kind=int64),dimension(atmosLen,nE2strBins) :: electFwd,electBwd
 
 !* Output production variables:
-integer(kind=int64),dimension(nTargProc,1+nProjProc,nChS,atmosLen) :: Sulfur
 integer(kind=int64),dimension(atmosLen) :: Hp,H2p !H+ and H2+ counts
 integer(kind=int64) :: H2Ex(atmosLen) !Excited H2 counter
 real*8 norm !Normalization variable to per ion per cm
@@ -137,7 +137,7 @@ real,allocatable :: angle(:)
 
 !* Output Variables:
 integer nOutputFiles !Number of output files
-parameter(nOutputFiles=5)
+parameter(nOutputFiles=9)
 character(len=100) filename,files(nOutputFiles) !Output file names
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
@@ -151,7 +151,8 @@ data IonEnergy/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 !                379.384,456.250/ !JEDI energy bins interpolated
 data engBins/nSulEngBins*SulEngBinSize/ !Used for sulfur binning
 data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
-          &'Collisions'/
+           'Collisions','Photons_CX','Photons_DE','2Str_Elect_Fwd',&
+           '2Str_Elect_Bwd'/
 !********************************** Run Time ***********************************
 !Calculate the total computational run time of the model:
 call system_clock (t1,clock_rateTotal,clock_maxTotal)
@@ -417,30 +418,32 @@ H2Ex  =0;collisions=0;SulVsEng  =0
 4000 continue
   end do !End of ion=1,nIons loop
 !******************************** Output Header ********************************
-  write(*,*)"--------------------------NEW RUN---------------------------"
-  write(*,*)"Number of ions: ", nIons
-  write(*,*)"Initial energy: ", energy, 'keV'
-  write(*,*)"Trial number:   ", trial
+  write(*,*) '--------------------------NEW RUN---------------------------'
+  write(*,*) 'Number of ions: ', nIons
+  write(*,*) 'Initial energy: ', energy, 'keV'
+  write(*,*) 'Trial number:   ', trial
   write(*,F3) !'**'
   !******* Check various electron counters
-  write(*,*)'Sum of total electrons foward:         ',sum(electFwd)
-  write(*,*)'Sum of total electrons backward:       ',sum(electBwd)
-  write(*,*)'Sum of total electrons foward+backward:',sum(electFwd+electBwd)
-  write(*,*)'Sum of total electrons:                ',totalElect
+  write(*,*) 'Sum of total electrons foward:         ',sum(electFwd)
+  write(*,*) 'Sum of total electrons backward:       ',sum(electBwd)
+  write(*,*) 'Sum of total electrons foward+backward:',sum(electFwd+electBwd)
+  write(*,*) 'Sum of total electrons:                ',totalElect
   write(*,F1)'Max Depth:',altitude(maxDpt)
 !********** Open output data files for each set of initial energies ************
   do i=1,nOutputFiles
     write(filename,"('./Output/',I0,'/',A,'-',I0,'.dat')")&
-    &energy,trim(files(i)),trial
+      energy,trim(files(i)),trial
     open(unit=100+i,file=trim(filename))
   end do
 !***************************** Write out to files ******************************
   norm=nIons*2e5 !Normalization condition to per ion per cm
+!*** Charge state distribution
   write(101,H01) !Sulfur charge state distribution header
   do i=2,nSulEngBins !Sulfur charge state distribution
     write(101,F01) SulEngBins(i)-(SulEngBinSize/2.0),&
-    &(real(SulVsEng(j,i))/real(sum(SulVsEng(:,i))),j=1,nChS)
+      (real(SulVsEng(j,i))/real(sum(SulVsEng(:,i))),j=1,nChS)
   end do
+!*** H production
   write(102,H02) !H^+ Header
   write(103,H03) !H_2^+ Header
   write(104,H04) !H_2^* Header
@@ -449,7 +452,7 @@ H2Ex  =0;collisions=0;SulVsEng  =0
     write(103,F02) altitude(i),H2p(i)/norm !H_2^+ production
     write(104,F02) altitude(i),H2Ex(i)/norm !H_2^* production
   end do
-
+!*** Collision counters
   write(105,F03) (ProjColl(i),i=1,nProjProc) !Collisions header
   do i=1,nTargProc !Total number of each type of collision
     write(105,F04) TargColl(i),(collisions(i,j),j=1,5),sum(collisions(i,:))
@@ -460,14 +463,52 @@ H2Ex  =0;collisions=0;SulVsEng  =0
   write(105,F03) (ProjColl(i),i=1,nProjProc) !Collisions precentage header
   do i=1,nTargProc !Total number of each type of collision
     write(105,F05) TargColl(i),&
-    &(real(collisions(i,j))/real(sum(collisions))*100,j=1,5),&
-    &real(sum(collisions(i,:)))/real(sum(collisions))*100
+      (real(collisions(i,j))/real(sum(collisions))*100,j=1,5),&
+      real(sum(collisions(i,:)))/real(sum(collisions))*100
   end do
   write(105,F4) !'--'
   write(105,F05) 'Sum ',&
-  &(real(sum(collisions(:,i)))/real(sum(collisions))*100,i=1,nProjProc+1),&
-  &real(sum(collisions))/real(sum(collisions))*100
-
+    (real(sum(collisions(:,i)))/real(sum(collisions))*100,i=1,nProjProc+1),&
+    real(sum(collisions))/real(sum(collisions))*100
+!*** Photon production
+  write(106,N01) !CX note
+  write(107,N02) !DE note
+  write(106,*) !Blank space
+  write(107,*) !Blank space
+  write(106,H09) !Blank space
+  write(107,H09) !Blank space
+  write(106,*) !Blank space
+  write(107,*) !Blank space
+  write(106,H05) !Altitude integrated photon production header
+  write(107,H05) !Altitude integrated photon production header
+  write(106,H06) !Charge state header
+  write(107,H06) !Charge state header
+  !* Altitude integrated photon production
+  write(106,F06) altDelta(1),& !CX - TI, SC, SC+SPEX
+    (real(sum(sulfur(TI,noPP,ChS,:))+sum(sulfur(SC,noPP,ChS,:))+&
+    sum(sulfur(SC,SPEX,ChS,:)))/norm,ChS=1,nChS)
+  write(107,F06) altDelta(1),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
+    (real(sum(sulfur(SI,SPEX,ChS,:))+sum(sulfur(DI,SPEX,ChS,:))+&
+    sum(sulfur(TEX,SPEX,ChS,:)))/norm,ChS=1,nChS)
+  write(106,*) !Blank space
+  write(107,*) !Blank space
+  write(106,H07) !Photon production vs. altitude header
+  write(107,H07) !Photon production vs. altitude header
+  write(106,H08) !Charge state header
+  write(107,H08) !Charge state header
+  do i=1,atmosLen
+    write(106,F06) altitude(i),& !CX - TI, SC, SC+SPEX
+     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SPEX,ChS,i))/&
+     norm,ChS=1,nChS)
+    write(107,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
+     (real(sulfur(SI,SPEX,ChS,i)+sulfur(DI,SPEX,ChS,i)+sulfur(TEX,SPEX,ChS,i))/&
+     norm,ChS=1,nChS)
+  end do
+!***************************** Secondary Electrons *****************************
+do j=1,nE2strBins !2-stream electrons, forward and backward
+  write(108,F2str) (real(electFwd(i,j))/norm,i=atmosLen,1,-1)
+  write(109,F2str) (real(electBwd(i,j))/norm,i=atmosLen,1,-1)
+end do
 !******************************* Close all files *******************************
   do i=1,nOutputFiles
     close(100+i)
