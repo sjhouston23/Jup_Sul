@@ -77,22 +77,15 @@ close(102)
 1000 format(10(F8.3,1x))
 1001 format(10(ES9.3E2,1x))
 !******************************* Read NSIM data ********************************
-open(unit=104,file='NSIM.txt',status='old') !All NSIM data
-do ChS=1,nChS !Loop through every charge state
-  do i=1,20
-    read(104,*) !Skip a bunch of blank lines
-  end do
-  do Eng=1,nEnergies !Loop through every energy
-    read(104,*) !Skip a line
-    do Proc=1,nProc
-      read(104,*) NSIMxs(Proc,ChS,Eng)
-    end do
-    do i=1,3
-      read(104,*)
-    end do
+open(unit=104,file='NSIMall.txt',status='old') !All NSIM data
+do proc=1,nProc
+  read(104,*)
+  read(104,*)
+  do Eng=1,nEnergies
+    read(104,1002) (NSIMxs(Proc,ChS,Eng),ChS=1,nChS)
   end do
 end do
-close(104)
+1002 format(7x,17(2x,ES8.2E2))
 !**************************** Initialize Variables *****************************
 InterpSDXSe=0.0;InterpSDXSa=0.0;InterpEnergy=0.0;InterpAngle=0.0
 InterpAngleRad=0.0;eAngleRad=0.0;eProbFunc=0.0;aProbFunc=0.0
