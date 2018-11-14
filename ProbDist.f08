@@ -66,8 +66,10 @@ character(len=4),dimension(nProc) :: Processes
 data Energy/1,10,50,75,100,200,500,1000,2000/
 data Processes/'  SI','  DI','  TI','DCAI','  SS','  DS'/
 !******************* Get singly differential cross-sections ********************
-open(unit=101,file='./Electron_Dist/SDXSeall.dat') !0.0 values, change 1.000E-30
-open(unit=102,file='./Electron_Dist/SDXSaall.dat') !0.0 values, change 1.000E-30
+! open(unit=101,file='./Electron_Dist/SDXSeall.dat') !0.0 values, change 1.000E-30
+! open(unit=102,file='./Electron_Dist/SDXSaall.dat') !0.0 values, change 1.000E-30
+open(unit=101,file='../SulfurXS/SDXSeall.dat')
+open(unit=102,file='../SulfurXS/SDXSaall.dat')
 read(101,1000) eEnergy !Electron energies
 read(102,1000) eAngle !Electron angles
 read(101,1001) SDXSe !Singly differential cross-section data for electron energy
@@ -92,18 +94,18 @@ InterpAngleRad=0.0;eAngleRad=0.0;eProbFunc=0.0;aProbFunc=0.0
 integralSDXSe=0.0;integralSDXSa=0.0;integralSDXSei=0.0;integralSDXSai=0.0
 !***** Calculate the change in energies and angles for Simpson's rule
 do Eng=1,neEnergies
-  if(Eng.eq.1)then
-    dE(Eng)=eEnergy(Eng)-0.0
+  if(Eng.lt.neEnergies)then
+    dE(Eng)=eEnergy(Eng+1)-eEnergy(Eng)
   else
-    dE(Eng)=eEnergy(Eng)-eEnergy(Eng-1)
+    dE(Eng)=6725.0-eEnergy(Eng)
   end if
 end do
 eAngleRad=eAngle*pi/180.0 !Convert angles to radians
 do Ang=1,neAngles
-  if(Ang.eq.1)then
-    dA(Ang)=eAngleRad(Ang)-0.0 !Want dA in radians
+  if(Ang.lt.neAngles)then
+    dA(Ang)=eAngleRad(Ang+1)-eAngleRad(Ang) !Want dA in radians
   else
-    dA(Ang)=eAngleRad(Ang)-eAngleRad(Ang-1)
+    dA(Ang)=pi-eAngleRad(Ang)
   end if
 end do
 !******************* Create interpolated energies and angles *******************
@@ -129,18 +131,18 @@ do i=1,nInterpAng !Calculate interpolated angle bins
 end do
 !***** Calculate the change in energies and angles for Simpson's rule
 do Eng=1,nInterpEng
-  if(Eng.eq.1)then
-    dEi(Eng)=InterpEnergy(Eng)-0.0
+  if(Eng.lt.nInterpEng)then
+    dEi(Eng)=InterpEnergy(Eng+1)-InterpEnergy(Eng)
   else
-    dEi(Eng)=InterpEnergy(Eng)-InterpEnergy(Eng-1)
+    dEi(Eng)=dEi(Eng-1)
   end if
 end do
 InterpAngleRad=InterpAngle*pi/180.0 !Convert angles to radians
 do Ang=1,nInterpAng
-  if(Ang.eq.1)then
-    dAi(Ang)=InterpAngleRad(Ang)-0.0 !Want dA in radians
+  if(Ang.lt.nInterpAng)then
+    dAi(Ang)=InterpAngleRad(Ang+1)-InterpAngleRad(Ang) !Want dA in radians
   else
-    dAi(Ang)=InterpAngleRad(Ang)-InterpAngleRad(Ang-1)
+    dAi(Ang)=pi-InterpAngleRad(Ang)
   end if
 end do
 !******************************** Main Program *********************************
@@ -193,14 +195,19 @@ do Proc=1,nProc !Loop through every process
       call simp(neAngles,dA,tmpa,integralSDXSa)
       call simp(nInterpEng,dEi,tmpei,integralSDXSei)
       call simp(nInterpAng,dAi,tmpai,integralSDXSai)
-      write(*,'(2x,A4,"-E",I4,2x,I5,3(2x,ES8.2E2),2(1x,F6.2))') &
-      Processes(Proc),ChS-1,Energy(ionEng),integralSDXSe,integralSDXSei,&
-      NSIMxs(Proc,ChS,ionEng),integralSDXSe/NSIMxs(Proc,ChS,ionEng),&
-      integralSDXSei/NSIMxs(Proc,ChS,ionEng)
-      write(*,'(2x,A4,"-A",I4,2x,I5,2x,ES8.2E2,2x,ES8.2E2,11x,F6.2,1x,F6.2)') &
-      Processes(Proc),ChS-1,Energy(ionEng),integralSDXSa,&
-      integralSDXSai,integralSDXSa/NSIMxs(Proc,ChS,ionEng),&
-      integralSDXSai/NSIMxs(Proc,ChS,ionEng)
+      if(integralSDXSei/NSIMxs(Proc,ChS,ionEng).lt.0.8.or.&
+      integralSDXSei/NSIMxs(Proc,ChS,ionEng).gt.1.20)&
+        write(*,'(2x,A4,"-E",I4,2x,I5,3(2x,ES8.2E2),2(1x,F6.2))') &
+        Processes(Proc),ChS-1,Energy(ionEng),integralSDXSe,integralSDXSei,&
+        NSIMxs(Proc,ChS,ionEng),integralSDXSe/NSIMxs(Proc,ChS,ionEng),&
+        integralSDXSei/NSIMxs(Proc,ChS,ionEng)
+      if(integralSDXSai/NSIMxs(Proc,ChS,ionEng).lt.0.8.or.&
+      integralSDXSai/NSIMxs(Proc,ChS,ionEng).gt.1.20)&
+        write(*,'(2x,A4,"-A",I4,2x,I5,3(2x,ES8.2E2),2(1x,F6.2))')&
+        ! write(*,'(2x,A4,"-A",I4,2x,I5,2x,ES8.2E2,2x,ES8.2E2,11x,F6.2,1x,F6.2)')&
+        Processes(Proc),ChS-1,Energy(ionEng),integralSDXSa,integralSDXSai,&
+        NSIMxs(Proc,ChS,ionEng),integralSDXSa/NSIMxs(Proc,ChS,ionEng),&
+        integralSDXSai/NSIMxs(Proc,ChS,ionEng)
 !************************** Probability Distribution ***************************
       do iEng=1,nInterpEng !Loop through all interpolated energies
         allocate(dEtmp(iEng),temp(iEng))
