@@ -27,6 +27,12 @@ H08="(' Alt [km]',9x,'S',8x,'S+',7x,'S2+',7x,'S3+',7x,'S4+',7x,'S5+',7x,'S6+',&
   7x,'S7+',7x,'S8+',7x,'S9+',6x,'S10+',6x,'S11+',6x,'S12+',6x,'S13+',6x,'S14+',&
   6x,'S15+',6x,'S16+')",&
 H09="(' Initial input of 1 ion cm^-2 s^-1')",&
+H10="(' E',14x,'SP        Sig       dE     dN        SP1           Ions',/,&
+  ' Various data to calculate stopping power for input of 1 ion/cm^2/s.',/,&
+  ' Conversion from [eV*cm^2] to [(MeV/mg)*cm^2] is 3.345e-15.',/,&
+  ' Ion Energy     dE/dN     Sigma       dE     dN        Sigma*dE     ',&
+  ' Counts',/,' [keV/u]        [eV*cm^2] [cm^2]      [eV]   [cm^-2]  ',&
+  ' [eV*cm^2]    per bin')",&
 !******************************* Notes Variables *******************************
 N01="(' Note: These charge states are the resultant charge state from a',&
   ' collision. E.g. the production under S7+ is the number',/,6x,&
@@ -64,6 +70,7 @@ F03="(32x,A8,5x,A8,3x,A8,5x,A8,6x,'Sum')",&
 F04="(1x,A4,4x,6(I12,1x))",&
 F05="(1x,A4,4x,6(F12.2,1x))",&
 F06="(1x,F8.2,17(2x,ES8.2))",&
+F07="(1x,F8.2,6x,2(ES9.2,1x),F8.2,2(1x,ES9.2),1x,I11)",&
 F2Str="(1x,1P10E11.3)"  !Electron 2-stream formatting (912)
 !****************************** Processes Header *******************************
 character(len=8) TargColl(7),ProjColl(4)
