@@ -102,6 +102,7 @@ parameter(mass=32.065)
 !OTHER VARIABLES
 integer trial,excite,elect,disso,PID(2),nIons
 integer numSim,dpt,maxDpt
+character(len=100) arg !For reading in trial number on the cluster
 
 integer(kind=int64),dimension(nTargProc,1+nProjProc) :: collisions !Counter
 integer(kind=int64),dimension(nTargProc,1+nProjProc,nChS,atmosLen) :: Sulfur
@@ -232,7 +233,7 @@ end do
 !* Regular:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-nIons=10 !Number of ions that are precipitating
+nIons=1 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
 do run=9,9!,nEnergies !Loop through different initial ion energies
