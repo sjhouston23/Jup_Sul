@@ -63,16 +63,16 @@ real*8,dimension(atmosLen) :: totalCD,altitude,altDelta,totalDens,H
 real*8 dum
 
 !* Sulfur ion variables:
-integer nProjProc !Number of projectile processes
+integer pProc,nProjProc !Number of projectile processes
 parameter(nProjProc=4)
 
-integer nTargProc !Number of target processes
+integer tProc,nTargProc !Number of target processes
 parameter(nTargProc=7)
 
 integer nChS !Number of sulfur charge states from 0-16
 parameter(nChS=17)
 
-integer nEnergies !Number of inital ion energies
+integer Eng,nEnergies !Number of inital ion energies
 integer nInterpEnergies !Number of interpolated ion energies
 parameter(nEnergies=9,nInterpEnergies=2000)
 
@@ -171,10 +171,21 @@ end do
 close(200) !Close column density file
 close(201) !Close atmosphere file
 !*************************** Get SIM cross-sections ****************************
-open(unit=203,file='./SIMXSInterp/SIMXSInterpAll.dat',status='old')
-read(203,20300) SIMxs !SIM cross-section data
-close(203) !Close SIM cross-section data
-20300 format (20(ES9.3E2,1x)) !Formatting for the file
+open(unit=203,file='./SIMXSInterp/SIMXSInterpAll.txt',status='old')
+do tProc=1,nTargProc
+  do pProc=1,nProjProc+1
+    do i=1,2
+      read(203,*)
+    end do
+    do Eng=1,nInterpEnergies
+      read(203,20300) dum,(SIMxs(tProc,pProc,ChS,Eng),ChS=1,nChS)
+    end do
+  end do
+end do
+20300 format(F7.2,17(1x,ES9.3E2))
+! read(203,20300) SIMxs !SIM cross-section data
+! close(203) !Close SIM cross-section data
+! 20300 format (20(ES9.3E2,1x)) !Formatting for the file
 SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
 SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
 !**************************** Various Bin Creation *****************************
@@ -215,9 +226,9 @@ end do
 !* Regular:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-nIons=1 !Number of ions that are precipitating
+nIons=100 !Number of ions that are precipitating
 trial=5 !The seed for the RNG
-do run=2,2!,nEnergies !Loop through different initial ion energies
+do run=9,9!,nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=int(IonEnergy(run))
   write(*,*) "Number of ions:         ",nIons
@@ -248,7 +259,7 @@ H2Ex  =0;collisions=0;SulVsEng  =0
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
     E=IonEnergy(run)   !Start with initial ion energy
-    ChS_init=2        !1 is an initial charge state of 0, 2 is +1
+    ChS_init=2         !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
