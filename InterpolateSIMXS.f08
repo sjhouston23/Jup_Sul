@@ -34,19 +34,34 @@ real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxsInterp
 
 character(len=100) :: filename
 character(len=4),dimension(nTargProc) :: TargProcCap !Target processes
+character(len=4),dimension(nTargProc) :: TargProcCap2 !Target processes
 character(len=5),dimension(nProjProc+1) :: ProjProcCap !Projectile processes
 
 !****************************** Data Declaration *******************************
 data Energy/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 data TargProcCap/'SI  ','DI  ','TI  ','DCAI','SC  ','DC  ','TEX '/
+data TargProcCap2/'  SI','  DI','  TI','DCAI','  SC','  DC',' TEX'/
 data ProjProcCap/'     ','+SS  ','+DS  ','+SPEX','+DPEX'/
 !**************************** Initialize Variables *****************************
 SIMxs=0.0;SIMxsInterp=0.0
 !******************************** Main Program *********************************
-open(unit=100,file='./SIMXS/SIMXSall.dat',status='old')!All SIMxs data in a file
-read(100,*) !Skip first line
-read(100,1000) SIMxs !Read in all the data
-close(100) !Close the file
+! open(unit=100,file='./SIMXS/SIMXSall.dat',status='old')!All SIMxs data in a file
+! read(100,*) !Skip first line
+! read(100,1000) SIMxs !Read in all the data
+! close(100) !Close the file
+
+open(unit=100,file='./SIMXS/SIMXSfinal.txt',status='old')
+do tProc=1,nTargProc
+  do pProc=1,nProjProc+1
+    do i=1,2
+      read(100,*)
+    end do
+    do Eng=1,nEnergies
+      read(100,*) ndum,(SIMxs(ChS,Eng,tProc,pProc),ChS=1,nChS)
+    end do
+  end do
+end do
+close(100)
 
 do tProc=1,nTargProc !Loop through every target process
   do pProc=1,nProjProc+1 !Loop through every projectile process plus 1
@@ -65,15 +80,17 @@ do tProc=1,nTargProc !Loop through every target process
   end do !End loop through every projectile process plus 1
 end do !End loop through every target process
 
+SIMxsInterp=exp(SIMxsInterp) !Revert back from log
+
 do tProc=1,nTargProc !Loop through every target process
   do pProc=1,nProjProc+1 !Loop through every projectile process plus 1
     write(filename,"('./SIMXSInterp/',A,A,'.dat')")&
     trim(TargProcCap(tProc)),trim(ProjProcCap(pProc))
     open(unit=101,file=trim(filename))
     write(101,1002) (i-1,i=1,17)
-    do E=1,nInterpEnergies !Interpolation loop (1-2000 keV/u)
-      write(101,1001) real(E),(exp(SIMxsInterp(tProc,pProc,ChS,E)),ChS=1,nChS)
-    end do !End interpolation loop (1-2000 keV/u)
+    do E=1,nInterpEnergies !Energy interpolation loop (1-2000 keV/u)
+      write(101,1001) real(E),(SIMxsInterp(tProc,pProc,ChS,E),ChS=1,nChS)
+    end do !End energy interpolation loop (1-2000 keV/u)
     close(101)
     write(filename,"('./SIMXS/',A,A,'p.dat')")&
     trim(TargProcCap(tProc)),trim(ProjProcCap(pProc))
@@ -86,13 +103,33 @@ do tProc=1,nTargProc !Loop through every target process
   end do !End loop through every projectile process plus 1
 end do !End loop through every target process
 
-open(unit=103,file='./SIMXSInterp/SIMXSInterpAll.dat')
-write(103,1100) exp(SIMxsInterp) !Write out every cross-section to a single file
+open(unit=103,file='./SIMXSInterp/SIMXSInterpAll.txt')
+do tProc=1,nTargProc !Loop through every target process
+  do pProc=1,nProjProc+1 !Loop through every projectile process plus 1
+    write(103,1111) TargProcCap2(tProc),ProjProcCap(pProc)
+    write(103,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
+    &S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
+    &     S^13+     S^14+     S^15+     S^16+'
+    do E=1,nInterpEnergies !Energy interpolation loop (1-2000 keV/u)
+      do ChS=1,nChS !Loop through every charge state
+        if(isnan(SIMxsInterp(tProc,pProc,ChS,E)))& !Get rid of any NaN values
+        SIMxsInterp(tProc,pProc,ChS,E)=0.0
+      end do !End loop through every charge state
+      write(103,1001) real(E),&
+        (SIMxsInterp(tProc,pProc,ChS,E),ChS=1,nChS)
+    end do !End energy interpolation loop (1-2000 keV/u)
+  end do !End loop through every projectile process plus 1
+end do !End loop through every target process
 close(103)
+! open(unit=103,file='./SIMXSInterp/SIMXSInterpAll.dat')
+! write(103,1100) exp(SIMxsInterp) !Write out every cross-section to a single file
+! close(103)
 
 1000 format(17(ES9.3E2,1x))
 1001 format(F7.2,17(1x,ES9.3E2))
 1002 format(' Energy',4x,9('S^',I0,'+',6x),8('S^',I0,'+',5x))
 1100 format(20(ES9.3E2,1x))
+1111 format(A4,A5,'----------')
+1112 format(I7,17(1x,ES9.3E2))
 
 end program
