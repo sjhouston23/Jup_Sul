@@ -57,48 +57,55 @@ real sec
 
 !* Atmosphere variables:
 integer atmosLen !"Length" of the atmosphere (3000 - -88 km) with 2 km steps]
+real*8 dN,dNTot,dZ,dZTot !Change in atmosphere
 parameter(atmosLen=1544) !Length of the atmosphere
 real*8,dimension(atmosLen) :: totalCD,altitude,altDelta,totalDens,H
 !* Total column density, array of altitude in km, alt bin size, scale height
 real*8 dum
 
 !* Sulfur ion variables:
+!PROJECTILE PROCESSES (pProc)
 integer pProc,nProjProc !Number of projectile processes
-parameter(nProjProc=4)
-
-integer tProc,nTargProc !Number of target processes
-parameter(nTargProc=7)
-
-integer nChS !Number of sulfur charge states from 0-16
-parameter(nChS=17)
-
-integer Eng,nEnergies !Number of inital ion energies
-integer nInterpEnergies !Number of interpolated ion energies
-parameter(nEnergies=9,nInterpEnergies=2000)
-
-integer SI,DI,TI,DA,SC,DC,TEX !Target processes
-parameter(SI=1,DI=2,TI=3,DA=4,SC=5,DC=6,TEX=7)
-
 integer noPP,SS,DS,SPEX,DPEX !Projectile processes + no projectile process(noPP)
+parameter(nProjProc=4)
 parameter(noPP=1,SS=2,DS=3,SPEX=4,DPEX=5)
-
+!TARGET PROCESSES (tProc)
+integer tProc,nTargProc !Number of target processes
+integer SI,DI,TI,DA,SC,DC,TEX !Target processes
+parameter(nTargProc=7)
+parameter(SI=1,DI=2,TI=3,DA=4,SC=5,DC=6,TEX=7)
+!CHARGE STATES (ChS)
+integer ChS,ChS_init,ChS_old,nChS !Number of sulfur charge states from 0-16
+parameter(nChS=17)
+!ENERGY
+integer Eng,energy,nEnergies !Number of inital ion energies
+integer nInterpEnergies !Number of interpolated ion energies
+real*8 E,dE
+parameter(nEnergies=9,nInterpEnergies=2000)
+real*8,dimension(nEnergies) :: IonEnergy !Initial ion energies
+!CHARGE STATE DISTRIBUTION
 integer nSulEngBins !Number of energy bins for charge state fractions
 real*8 SulEngBinSize !Size of energy bins for charge state fractions
 parameter(nSulEngBins=2000,SulEngBinSize=1.0)
-
-real*8 mass !Atomic mass of sulfur (32.065)
-parameter(mass=32.065)
-
-integer energy,trial,ChS_init,ChS,ChS_old,dpt,excite,elect,disso,PID(2),nIons
-integer numSim,maxDpt
-
 integer(kind=int64) :: SulVsEng(nChS,nSulEngBins) !Charge state fractions
 real*8 engBins(nSulEngBins),SulEngBins(nSulEngBins) !Sulfur energy bins
+!STOPPING POWER (SP)
+integer nSPBins !Number of stopping power bins vs. energy
+real*8 SPBinSize !Size of bins
+parameter(nSPBins=2000,SPBinSize=1.0)
+real*8 dEsp,SIMxsTotSP,dEold
+integer(kind=int64),dimension(nSPBins) :: nSPions
+real*8,dimension(nSPBins) :: SPBins,SPvsEng,SIMxsTotvsEng,dEvsEng,dNvsEng
+!MASS
+real*8 mass !Atomic mass of sulfur (32.065)
+parameter(mass=32.065)
+!OTHER VARIABLES
+integer trial,excite,elect,disso,PID(2),nIons
+integer numSim,dpt,maxDpt
 
 integer(kind=int64),dimension(nTargProc,1+nProjProc) :: collisions !Counter
 integer(kind=int64),dimension(nTargProc,1+nProjProc,nChS,atmosLen) :: Sulfur
-real*8 incB,kappa,dE,dN,dNTot,dZ,dZTot,E,pangle,SIMxsTotSP
-real*8,dimension(nEnergies) :: IonEnergy !Initial ion energies
+real*8 incB,kappa,pangle
 real*8,dimension(nChS,nInterpEnergies) :: SIMxs_Total !SigTot for dN calculation
 real*8,dimension(1+nProjProc,nChS,nInterpEnergies) :: SIMxs_Totaltmp
 real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxs !All SIMxs
@@ -137,7 +144,7 @@ real,allocatable :: angle(:)
 
 !* Output Variables:
 integer nOutputFiles !Number of output files
-parameter(nOutputFiles=9)
+parameter(nOutputFiles=10)
 character(len=100) filename,files(nOutputFiles) !Output file names
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
@@ -151,14 +158,14 @@ data IonEnergy/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 !                379.384,456.250/ !JEDI energy bins interpolated
 data engBins/nSulEngBins*SulEngBinSize/ !Used for sulfur binning
 data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
-           'Collisions','Photons_CX','Photons_DE','2Str_Elect_Fwd',&
-           '2Str_Elect_Bwd'/
+           'Collisions','Photons_CX','Photons_DE','Stopping_Power',&
+           '2Str_Elect_Fwd','2Str_Elect_Bwd'/
 !********************************** Run Time ***********************************
 !Calculate the total computational run time of the model:
 call system_clock (t1,clock_rateTotal,clock_maxTotal)
 !**************************** Initialize Variables *****************************
 altitude=0.0;totalCD=0.0;totalDens=0.0;H=0.0;altDelta=0.0;SIMxs=0.0
-SIMxs_Total=0.0;SIMxs_Totaltmp=0.0;SulEngBins=0.0
+SIMxs_Total=0.0;SIMxs_Totaltmp=0.0;SulEngBins=0.0;SPBins=0.0
 !**************************** Create the Atmosphere ****************************
 open(unit=200,file='./Atmosphere/Input/JunoColumnDensity_2km.dat',status='old')
 open(unit=201,file='./Atmosphere/Input/JunoAtmosphere_2km.dat',status='old')
@@ -199,12 +206,11 @@ SulEngBins(1)=SulEngBinSize
 do i=2,nSulEngBins
   SulEngBins(i)=SulEngBins(i-1)+engBins(i) !1-2000 keV/u
 end do
-! !Stopping power bins:
-! es=1.0
-! do i=1,nStopPowerEBins
-!   es=es+delSP(i)
-!   stopPowerEBins(i)=es
-! end do
+!Stopping power bins:
+SPBins(1)=1.0
+do i=2,nSPBins
+  SPBins(i)=SPBins(i-1)+SPBinSize
+end do
 ! !Bins for ejected electron energy:
 ! es=0.0
 ! do i=1,790
@@ -226,7 +232,7 @@ end do
 !* Regular:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-nIons=100 !Number of ions that are precipitating
+nIons=10 !Number of ions that are precipitating
 trial=5 !The seed for the RNG
 do run=9,9!,nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
@@ -242,12 +248,13 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
   allocate(angle(nIons)) !Want the same number of angles as ions
   call ranlux(angle,nIons) !Calculate all the angles to be used
 !********************* Reset Counters For New Ion Energies *********************
-Hp =0;totalElect=0
-H2p=0;Sulfur    =0;electFwd  =0;electBwd  =0;maxDpt   =0
-H2Ex  =0;collisions=0;SulVsEng  =0
-! pHp =0.0;totalH2p=0.0;collisions=0;npHp      =0;npH2p        =0
-! pH2p=0.0;totO      =0;dNvsEng =0.0;oxygenCX=0.0;prode2stF  =0.0;prode2stB=0.0
-!SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SigTotvsEng=0.0
+  Hp =0;totalElect=0
+  H2p=0;Sulfur    =0;electFwd  =0;electBwd  =0;maxDpt   =0
+  H2Ex  =0;collisions=0;SulVsEng  =0
+  SPvsEng=0.0;SIMxsTotvsEng=0.0;dEvsEng=0.0;dNvsEng=0.0;nSPions=0
+  ! pHp =0.0;totalH2p=0.0;collisions=0;npHp      =0;npH2p        =0
+  ! pH2p=0.0;totO      =0;dNvsEng =0.0;oxygenCX=0.0;prode2stF  =0.0;prode2stB=0.0
+  !SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SIMxsTotvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
   write(*,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
   do ion=1,nIons !Each ion starts here
@@ -279,6 +286,7 @@ H2Ex  =0;collisions=0;SulVsEng  =0
       !*****************************
       !Reset Variables:
       dN=0.0;dZ=0.0;dE=0.0 !Change in column density, altitude, energy
+      dEsp=0.0;SIMxsTotSP=0.0;dEold=0.0 !Stopping power variables
       !*****************************
       call CollisionSim(nint(E),SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
       collisions(PID(1),PID(2))=collisions(PID(1),PID(2))+1 !Count collisions
@@ -311,7 +319,7 @@ H2Ex  =0;collisions=0;SulVsEng  =0
           !If we get here, then the ion has went through the entire atmosphere
           write(*,*)"JupSulPrecip.f08: WARNING: Ion exited the bottom of the &
                     &atmosphere, proceeding to next ion."
-          goto 4000 !Continue on to the next ion
+          goto 5000 !Continue on to the next ion
         end if !Column density if-statement
       end do !Column density do-loop
 2000 continue
@@ -403,12 +411,12 @@ H2Ex  =0;collisions=0;SulVsEng  =0
 !************************** Energy Loss Calculations ***************************
       call energyloss(E,ChS_old,eEnergy,PID,eEnergySS,eAngleSS,&
                      &eEnergyDS,eAngleDS,dE)
-      ! dEsp=(dE)/dN !stopping power (calc before dE is recalculated)
-      ! dEold=dE
+      dEsp=(dE)/dN !stopping power (calc before dE is recalculated)
+      dEold=dE
       dE=(1/mass)*(1.0e-3)*dE*kappa !Total dE function
-      ! if(dN.lt.0.0)then !Change in column density should never be less than 0
-      !   write(206,10001) E,dEsp,dE,dN,dEold,process,PID(1),PID(2),ChS_old
-      ! end if
+      if(dN.lt.0.0)then !Change in column density should never be less than 0
+        write(206,10001) E,dEsp,dE,dN,dEold,PID(1),PID(2),ChS_old
+      end if
 !********************** Sulfur Charge State Distribution ***********************
       do j=1,nSulEngBins
         if(E.le.SulEngBins(j))then
@@ -417,16 +425,31 @@ H2Ex  =0;collisions=0;SulVsEng  =0
         end if
       end do
 3000 continue
+      do j=1,nSPBins
+        if(E.le.SPBins(j))then
+          SPvsEng(j)=SPvsEng(j)+dEsp !Stopping power vs energy
+          SIMxsTotvsEng(j)=SIMxsTotvsEng(j)+SIMxsTotSP !Total cross-section vs energy
+          dEvsEng(j)=dEvsEng(j)+dEold !Change in energy vs energy
+          dNvsEng(j)=dNvsEng(j)+dN !Change in column density vs energy
+          ! ProcessdE(j,processC(process),tempQold)=&
+          !   ProcessdE(j,processC(process),tempQold)+dEold
+          nSPions(j)=nSPions(j)+1 !Number of ions in each energy bin
+          ! pnSPions(j,processC(process),tempQold)=&
+          !   pnSPions(j,processC(process),tempQold)+1
+          goto 4000
+        end if
+      end do
+4000 continue
       E=E-dE
       ChS_old=ChS !Assign newly acquired charge state to old variable
-      if(E.lt.1.0) goto 4000 !Stop once the energy is less than 1 keV/u
+      if(E.lt.1.0) goto 5000 !Stop once the energy is less than 1 keV/u
       if(i.eq.numSim)then
         write(*,*) 'JupSulPrecip.f08: ERROR: numSim not large enough.'
         write(*,*) 'JupSulPrecip.f08: Ion energy was: ',E
-        goto 4000
+        goto 5000
       end if
     end do !End of i=1,numSim loop (E < 1 keV/u)
-4000 continue
+5000 continue
   end do !End of ion=1,nIons loop
 !******************************** Output Header ********************************
   write(*,*) '--------------------------NEW RUN---------------------------'
@@ -484,16 +507,13 @@ H2Ex  =0;collisions=0;SulVsEng  =0
 !*** Photon production
   write(106,N01) !CX note
   write(107,N02) !DE note
-  write(106,*) !Blank space
-  write(107,*) !Blank space
-  write(106,H09) !Blank space
-  write(107,H09) !Blank space
-  write(106,*) !Blank space
-  write(107,*) !Blank space
-  write(106,H05) !Altitude integrated photon production header
-  write(107,H05) !Altitude integrated photon production header
-  write(106,H06) !Charge state header
-  write(107,H06) !Charge state header
+  do i=1,2 !Loop through CX and DE headers
+    write(105+i,*) !Blank space
+    write(105+i,H09) !Initial input header
+    write(105+i,*) !Blank space
+    write(105+i,H05) !Altitude integrated photon production header
+    write(105+i,H06) !Charge state header
+  end do
   !* Altitude integrated photon production
   write(106,F06) altDelta(1),& !CX - TI, SC, SC+SPEX
     (real(sum(sulfur(TI,noPP,ChS,:))+sum(sulfur(SC,noPP,ChS,:))+&
@@ -501,12 +521,11 @@ H2Ex  =0;collisions=0;SulVsEng  =0
   write(107,F06) altDelta(1),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
     (real(sum(sulfur(SI,SPEX,ChS,:))+sum(sulfur(DI,SPEX,ChS,:))+&
     sum(sulfur(TEX,SPEX,ChS,:)))/norm,ChS=1,nChS)
-  write(106,*) !Blank space
-  write(107,*) !Blank space
-  write(106,H07) !Photon production vs. altitude header
-  write(107,H07) !Photon production vs. altitude header
-  write(106,H08) !Charge state header
-  write(107,H08) !Charge state header
+  do i=1,2 !Loop through CX and DE headers
+    write(105+i,*) !Blank space
+    write(105+i,H07) !Photon production vs. altitude header
+    write(105+i,H08) !Charge state header
+  end do
   do i=1,atmosLen
     write(106,F06) altitude(i),& !CX - TI, SC, SC+SPEX
      (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SPEX,ChS,i))/&
@@ -515,10 +534,21 @@ H2Ex  =0;collisions=0;SulVsEng  =0
      (real(sulfur(SI,SPEX,ChS,i)+sulfur(DI,SPEX,ChS,i)+sulfur(TEX,SPEX,ChS,i))/&
      norm,ChS=1,nChS)
   end do
+!*** Stopping power
+  write(108,H10) !Stopping power header
+  do i=1,nSPBins !Loop through ever stopping power bin
+    write(108,F07) SPBins(i)-(SPBinSize/2.0),&
+      SPvsEng(i)/real(nSPions(i)**2),&
+      SIMxsTotvsEng(i)/real(nSPions(i)),&
+      dEvsEng(i)/real(nSPions(i)),&
+      dNvsEng(i)/real(nSPions(i)),&
+      (SIMxsTotvsEng(i)*dEvsEng(i))/real(nSPions(i)**2),&
+      nSPions(i)
+  end do
 !***************************** Secondary Electrons *****************************
 do j=1,nE2strBins !2-stream electrons, forward and backward
-  write(108,F2str) (real(electFwd(i,j))/norm,i=atmosLen,1,-1)
-  write(109,F2str) (real(electBwd(i,j))/norm,i=atmosLen,1,-1)
+  write(109,F2str) (real(electFwd(i,j))/norm,i=atmosLen,1,-1)
+  write(110,F2str) (real(electBwd(i,j))/norm,i=atmosLen,1,-1)
 end do
 !******************************* Close all files *******************************
   do i=1,nOutputFiles
@@ -540,6 +570,5 @@ min=int(((real(t2-t1)/clock_rateTotal)-hrs*3600)/60)
 sec=mod(real(t2-t1)/clock_rateTotal,60.0)
 write(*,F3) !'**'
 write(*,F2) 'Total elapsed real time = ',hrs,min,sec
-
-
+10001 format(F8.2,3(2x,ES10.3E2),2x,F9.2,4(2x,I2))
 end program

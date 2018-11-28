@@ -217,7 +217,7 @@ do Eng=nEnergies,1,-1 !Loop through bins to get the correct ion energy bin
   endif
 end do
 1000 continue
-if (iBin.eq.0) write(*,*) 'EnergyLoss.f08: Error! iBin=0'
+if (iBin.eq.0) write(206,*) 'EnergyLoss.f08: Error! iBin=0'
 !* Want to use f to somewhat interpolate the cross-section for ion energies that
 !* lie between energy bins.
 if (k.eq.1) f=(E-IonEnergy(iBin-1))/(IonEnergy(iBin)-IonEnergy(iBin-1))

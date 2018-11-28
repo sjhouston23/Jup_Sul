@@ -109,12 +109,12 @@ do Eng=nEnergies,1,-1 !Loop through bins to get the correct ion energy bin
   endif
 end do
 2000 continue
-if (iBin.eq.0) write(*,*) 'EjectedElectron.f08: Error! iBin=0'
+if (iBin.eq.0) write(206,*) 'EjectedElectron.f08: Error! iBin=0'
 !* Want to use f to somewhat interpolate the cross-section for ion energies that
 !* lie between energy bins.
 if (k.eq.1) f=(E-IonEnergy(iBin-1))/(IonEnergy(iBin)-IonEnergy(iBin-1))
 if (k.eq.2) f=(E-IonEnergy(iBin))/(IonEnergy(iBin+1)-IonEnergy(iBin))
-! write(*,*) E,IonEnergy(iBin),iBin,k,f
+! write(206,*) E,IonEnergy(iBin),iBin,k,f
 
 call ranlux(ranVecC,2) !Random number vector
 !* Initialize:
@@ -175,7 +175,7 @@ do eAng=1,neAngles !Loop through all of the electron ejection angles
   end if !End of Monte Carlo if statement
 end do !End second electron angle sample do loop
 6000 continue
-! write(*,*) Proc,ChS,IonEnergy(iBin),electron_energy,electron_angle
+! write(206,*) Proc,ChS,IonEnergy(iBin),electron_energy,electron_angle
 do eEng=1,nE2strBins !Loop through the 2-stream energy bins
   if(electron_energy.le.E2str(eEng))then !Pick out which bin we need
     eBin=eEng !Assumes E2str(eEng) is the upper bound of the energy bin

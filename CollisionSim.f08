@@ -94,9 +94,9 @@ do tProc=1,nTargProc !Loop through every target process
   end do !End loop through every projectile process plus 1
 end do !End loop through every target process
 if(sum(Prob).ge.1.001.or.sum(Prob).le.0.9999)then !Warning if probability is bad
-  write(*,*) "CollisionSim.f08: WARNING: Normalized collision probability is &
+  write(206,*) "CollisionSim.f08: WARNING: Normalized collision probability is &
              &not close enough to 1. The value is: ", sum(Prob)
-  write(*,*) "tempQ: ", ChS, "Energy: ", E
+  write(206,*) "tempQ: ", ChS, "Energy: ", E
 end if
 !*******************************************************************************
 !************************* Collision-Type Determination ************************
@@ -150,7 +150,7 @@ do tProc=1,nTargProc !Loop through every target process
   end do !End loop through every projectile process plus 1
 end do !End loop through every target process
 !If we get into this portion, it means that ranVecB was .gt. sumProb
-write(*,*)'CollisionSim.f08: ERROR: Random number greater than normalized &
+write(206,*)'CollisionSim.f08: ERROR: Random number greater than normalized &
 &probability:', ranVecB(1), sumProb
 STOP 'CollisionSim.f08: Stopping program...'
 1000 continue

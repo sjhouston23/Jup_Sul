@@ -233,14 +233,22 @@ end do
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
 nIons=10 !Number of ions that are precipitating
-trial=5 !The seed for the RNG
+call get_command_argument(1,arg)
+read(arg,'(I100)') trial !The seed for the RNG
 do run=9,9!,nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=int(IonEnergy(run))
-  write(*,*) "Number of ions:         ",nIons
-  write(*,*) "Initial energy:         ",energy,'keV/u'
-  write(*,*) "Trial number (RNG Seed):",trial
-  write(*,F3) !'**'
+  write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Seeds.dat')") energy
+  open(unit=205,file=filename,status='unknown',access='append',action='write')
+  write(205,*) trial
+  close(205)
+  write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Overview',I0,'.dat')")&
+    energy,trial
+  open(unit=206,file=filename,status='unknown')
+  write(206,*) "Number of ions:         ",nIons
+  write(206,*) "Initial energy:         ",energy,'keV/u'
+  write(206,*) "Trial number (RNG Seed):",trial
+  write(206,F3) !'**'
 !*************************** Random Number Generator ***************************
   !k1=0,k2=0 Should be set to zero unless restarting at a break (See ranlux.f08)
   in=trial !RNG seed
@@ -256,7 +264,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
   ! pH2p=0.0;totO      =0;dNvsEng =0.0;oxygenCX=0.0;prode2stF  =0.0;prode2stB=0.0
   !SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SIMxsTotvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
-  write(*,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
+  write(206,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
   do ion=1,nIons !Each ion starts here
     !*****************************
     !Initial Conditions:
@@ -279,7 +287,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
     !*****************************
     pangle=(2.0*atan(1.0))-acos(angle(ion)) !Pitch angle calculation has a
     !cosine dist. Straight down is pitch angle of 0, random number must be 0
-    write(*,*) 'Ion Number: ',ion,' Pitch angle: ',pangle*90/acos(0.0)
+    write(206,*) 'Ion Number: ',ion,' Pitch angle: ',pangle*90/acos(0.0)
     kappa=1.0/(cos(pangle)*cos(incB)) !Used to convert from ds to dz
     call ranlux(ranVecA,1002) !Get a random vector for collisions
     do i=1,numSim !This loop repeats after each collision until E < 1 keV/u
@@ -317,7 +325,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
             end if !Altitude if-statemet
           end do !Altitude do-loop
           !If we get here, then the ion has went through the entire atmosphere
-          write(*,*)"JupSulPrecip.f08: WARNING: Ion exited the bottom of the &
+          write(206,*)"JupSulPrecip.f08: WARNING: Ion exited the bottom of the &
                     &atmosphere, proceeding to next ion."
           goto 5000 !Continue on to the next ion
         end if !Column density if-statement
@@ -371,7 +379,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
         elseif(eAngle.le.270.0)then !Electrons going backward (0 is down)
           electBwd(dpt,eBin)=electBwd(dpt,eBin)+1 !Elect bwd vs. alt. and eng.
         else !If the electron is ejected so far backward it's going fwd again
-          write(*,*) "JupSulPrecip.f08: WARNING: Elect ejection angle &
+          write(206,*) "JupSulPrecip.f08: WARNING: Elect ejection angle &
                      &greater than 270 degrees."
         end if
         !Only want to add the electron energies for the some processes since SS
@@ -444,28 +452,28 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
       ChS_old=ChS !Assign newly acquired charge state to old variable
       if(E.lt.1.0) goto 5000 !Stop once the energy is less than 1 keV/u
       if(i.eq.numSim)then
-        write(*,*) 'JupSulPrecip.f08: ERROR: numSim not large enough.'
-        write(*,*) 'JupSulPrecip.f08: Ion energy was: ',E
+        write(206,*) 'JupSulPrecip.f08: ERROR: numSim not large enough.'
+        write(206,*) 'JupSulPrecip.f08: Ion energy was: ',E
         goto 5000
       end if
     end do !End of i=1,numSim loop (E < 1 keV/u)
 5000 continue
   end do !End of ion=1,nIons loop
 !******************************** Output Header ********************************
-  write(*,*) '--------------------------NEW RUN---------------------------'
-  write(*,*) 'Number of ions: ', nIons
-  write(*,*) 'Initial energy: ', energy, 'keV'
-  write(*,*) 'Trial number:   ', trial
-  write(*,F3) !'**'
+  write(206,*) '--------------------------NEW RUN---------------------------'
+  write(206,*) 'Number of ions: ', nIons
+  write(206,*) 'Initial energy: ', energy, 'keV'
+  write(206,*) 'Trial number:   ', trial
+  write(206,F3) !'**'
   !******* Check various electron counters
-  write(*,*) 'Sum of total electrons foward:         ',sum(electFwd)
-  write(*,*) 'Sum of total electrons backward:       ',sum(electBwd)
-  write(*,*) 'Sum of total electrons foward+backward:',sum(electFwd+electBwd)
-  write(*,*) 'Sum of total electrons:                ',totalElect
-  write(*,F1)'Max Depth:',altitude(maxDpt)
+  write(206,*) 'Sum of total electrons foward:         ',sum(electFwd)
+  write(206,*) 'Sum of total electrons backward:       ',sum(electBwd)
+  write(206,*) 'Sum of total electrons foward+backward:',sum(electFwd+electBwd)
+  write(206,*) 'Sum of total electrons:                ',totalElect
+  write(206,F1)'Max Depth:',altitude(maxDpt)
 !********** Open output data files for each set of initial energies ************
   do i=1,nOutputFiles
-    write(filename,"('./Output/',I0,'/',A,'-',I0,'.dat')")&
+    write(filename,"('../scratch/Jup_Sul/Output/',I0,'/',A,'-',I0,'.dat')")&
       energy,trim(files(i)),trial
     open(unit=100+i,file=trim(filename))
   end do
@@ -559,7 +567,7 @@ end do
   hrs=int(real(t4-t3)/clock_rate/3600.0)
   min=int(((real(t4-t3)/clock_rate)-hrs*3600)/60)
   sec=mod(real(t4-t3)/clock_rate,60.0)
-  ! write(*,*) 'Individual run elapsed real time = ',hrs,':',min,':',sec
+  ! write(206,F2) 'Individual run elapsed real time = ',hrs,':',min,':',sec
   deallocate(angle) !Angle variable is reallocated for each energy
 end do !run=1,nEnergies
 
@@ -568,7 +576,8 @@ call system_clock (t2,clock_rateTotal,clock_maxTotal) !Total elapsed time
 hrs=int(real(t2-t1)/clock_rateTotal/3600.0)
 min=int(((real(t2-t1)/clock_rateTotal)-hrs*3600)/60)
 sec=mod(real(t2-t1)/clock_rateTotal,60.0)
-write(*,F3) !'**'
-write(*,F2) 'Total elapsed real time = ',hrs,min,sec
+write(206,F3) !'**'
+write(206,F2) 'Total elapsed real time = ',hrs,min,sec
+close(206)
 10001 format(F8.2,3(2x,ES10.3E2),2x,F9.2,4(2x,I2))
 end program
