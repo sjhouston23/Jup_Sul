@@ -77,8 +77,8 @@ end do
 !*********************** Ejected Electron Probabilities ************************
 if(neEnergies.gt.100)goto 1000 !Only want to read the files once
 !* Created by ReadElectDist.f08 and ProbDist.f08
-open(unit=100,file='./Electron_Dist/eprobfunc.dat',status='old')
-open(unit=101,file='./Electron_Dist/aprobfunc.dat',status='old')
+open(unit=100,file='./Electron_Dist/eProbFunc.dat',status='old')
+open(unit=101,file='./Electron_Dist/aProbFunc.dat',status='old')
 read(100,*) neEnergies !Number of ejected electron energies
 read(101,*) neAngles !Number of ejected electron angles
 allocate(eEnergy(neEnergies)) !Allocate electron energy array
