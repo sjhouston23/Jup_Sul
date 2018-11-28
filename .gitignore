@@ -1,6 +1,4 @@
 .DS_Store
-*.dat
-*.txt
 *.zip
 *.fig
 *.eps
@@ -14,4 +12,10 @@
 2Stream/input
 2Stream/common
 2Stream/output
+Atmosphere/Tp*
+Atmosphere/IRTF*
+Output/*
+Plotting Stuff
 SIMXS
+SIMXSInterp/*.dat
+NSIM*.txt
