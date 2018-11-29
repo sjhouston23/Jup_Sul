@@ -8,6 +8,7 @@
 *.mod
 *.o
 *.icloud
+*.out
 *~
 2Stream/input
 2Stream/common
