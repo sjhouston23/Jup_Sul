@@ -3,9 +3,9 @@
 #SBATCH --ntasks=1
 #SBATCH --mem=2gb
 #SBATCH --time=06:00:00
-#SBATCH --array=1-200
+#SBATCH --array=1-100
 
 R=$RANDOM
-./oxy $R
-echo $R >> ./Output/Trials.dat
+./precip.x $R
+echo $R >> ../scratch/Jup_Sul/Output/Trials.dat
 exit 0
