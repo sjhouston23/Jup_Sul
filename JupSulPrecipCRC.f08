@@ -233,7 +233,7 @@ end do
 !* Regular:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-nIons=50 !Number of ions that are precipitating
+nIons=5 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
 do run=9,9!,nEnergies !Loop through different initial ion energies
@@ -266,6 +266,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
   !SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SIMxsTotvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
   write(206,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
+  flush(206)
   do ion=1,nIons !Each ion starts here
     !*****************************
     !Initial Conditions:
@@ -289,6 +290,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
     pangle=(2.0*atan(1.0))-acos(angle(ion)) !Pitch angle calculation has a
     !cosine dist. Straight down is pitch angle of 0, random number must be 0
     write(206,*) 'Ion Number: ',ion,' Pitch angle: ',pangle*90/acos(0.0)
+    flush(206)
     kappa=1.0/(cos(pangle)*cos(incB)) !Used to convert from ds to dz
     call ranlux(ranVecA,1002) !Get a random vector for collisions
     do i=1,numSim !This loop repeats after each collision until E < 1 keV/u
