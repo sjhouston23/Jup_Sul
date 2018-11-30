@@ -233,7 +233,7 @@ end do
 !* Regular:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-nIons=5 !Number of ions that are precipitating
+nIons=100 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
 do run=9,9!,nEnergies !Loop through different initial ion energies
@@ -276,7 +276,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
     E=IonEnergy(run)   !Start with initial ion energy
-    ChS_init=2         !1 is an initial charge state of 0, 2 is +1
+    ChS_init=nChS         !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
@@ -547,7 +547,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
   end do
 !*** Stopping power
   write(108,H10) !Stopping power header
-  do i=1,nSPBins !Loop through ever stopping power bin
+  do i=2,nSPBins !Loop through ever stopping power bin
     write(108,F07) SPBins(i)-(SPBinSize/2.0),&
       SPvsEng(i)/real(nSPions(i)**2),&
       SIMxsTotvsEng(i)/real(nSPions(i)),&
@@ -582,5 +582,9 @@ sec=mod(real(t2-t1)/clock_rateTotal,60.0)
 write(206,F3) !'**'
 write(206,F2) 'Total elapsed real time = ',hrs,min,sec
 close(206)
+write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Elapsed_Times.dat')") energy
+open(unit=207,file=filename,access='append',action='write')
+write(207,*) trial,hrs,':',min,':',sec
+close(207)
 10001 format(F8.2,3(2x,ES10.3E2),2x,F9.2,4(2x,I2))
 end program
