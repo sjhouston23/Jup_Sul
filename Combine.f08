@@ -164,7 +164,7 @@ end do !End number of trials loop
 !********************************** Write Out **********************************
 write(*,*) 'Writing output files...'
 do i=1,nOutputFiles !Open the final combined files
-  write(filename,'("../scratch/Jup_Sul/Output/",I0,"/",A,"-Comb.dat")') &
+  write(filename,'("./Output/",I0,"/",A,"-Comb.dat")') &
         energy,trim(files(i))
   filename=trim(filename)
   open(unit=200+i,file=filename,status='unknown')
