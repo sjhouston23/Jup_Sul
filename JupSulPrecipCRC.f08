@@ -78,11 +78,14 @@ parameter(SI=1,DI=2,TI=3,DA=4,SC=5,DC=6,TEX=7)
 integer ChS,ChS_init,ChS_old,nChS !Number of sulfur charge states from 0-16
 parameter(nChS=17)
 !ENERGY
-integer Eng,energy,nEnergies !Number of inital ion energies
+integer Eng,energy,nEnergiesNorm,nEnergiesJuno !Number of inital ion energies
+integer nEnergies,EnergySwitch !Used to decide which set of energy bins
 integer nInterpEnergies !Number of interpolated ion energies
 real*8 E,dE
-parameter(nEnergies=9,nInterpEnergies=2000)
-real*8,dimension(nEnergies) :: IonEnergy !Initial ion energies
+parameter(nEnergiesNorm=9,nEnergiesJuno=37,nInterpEnergies=2000)
+real*8,dimension(nEnergiesNorm) :: IonEnergyNorm !Initial ion energies normally
+real*8,dimension(nEnergiesJuno) :: IonEnergyJuno !Initial ion energies for Juno
+real*8,allocatable,dimension(:) :: IonEnergy !Initial ion energies once decided
 !CHARGE STATE DISTRIBUTION
 integer nSulEngBins !Number of energy bins for charge state fractions
 real*8 SulEngBinSize !Size of energy bins for charge state fractions
@@ -149,18 +152,18 @@ parameter(nOutputFiles=10)
 character(len=100) filename,files(nOutputFiles) !Output file names
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
-data IonEnergy/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
+data IonEnergyNorm/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 ! data IonEnergy/10.625,15.017,20.225,29.783,46.653,59.770,77.522,120.647,&
 !                218.125,456.250/ !Juno energy bins from JEDI
-! data IonEnergy/10.625,11.619,12.656,13.786,15.017,16.177,17.427,18.774,20.225,&
-!                22.280,24.543,27.036,29.783,33.319,37.276,41.702,46.653,49.634,&
-!                52.806,56.180,59.770,63.785,68.070,72.642,77.522,86.586,96.710,&
-!                108.018,120.647,139.90,162.223,188.108,218.125,262.319,315.467,&
-!                379.384,456.250/ !JEDI energy bins interpolated
+!* Initial ion enegy input from interpoalted JEDI bins:
+data IonEnergyJuno/10.625,11.619,12.656,13.786,15.017,16.177,17.427,18.774,&
+     20.225,22.280,24.543,27.036,29.783,33.319,37.276,41.702,46.653,49.634,&
+     52.806,56.180,59.770,63.785,68.070,72.642,77.522,86.586,96.710,108.018,&
+     120.647,139.90,162.223,188.108,218.125,262.319,315.467,379.384,456.250/
 data engBins/nSulEngBins*SulEngBinSize/ !Used for sulfur binning
 data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
-           'Collisions','Photons_CX','Photons_DE','Stopping_Power',&
-           '2Str_Elect_Fwd','2Str_Elect_Bwd'/
+     'Collisions','Photons_CX','Photons_DE','Stopping_Power','2Str_Elect_Fwd',&
+     '2Str_Elect_Bwd'/
 !********************************** Run Time ***********************************
 !Calculate the total computational run time of the model:
 call system_clock (t1,clock_rateTotal,clock_maxTotal)
@@ -219,16 +222,30 @@ end do
 ! do i=1,180
 !   elecAbins(i)=i
 ! end do
-!*******************************************************************************
-!******************************** MAIN PROGRAM *********************************
-!*******************************************************************************
+!**************************** Energy Bins Selection ****************************
 !* The following run number corresponds to the energy in keV/u
 !* Juno:
-!* 1=10, 2=15, 3=20, 4=30, 5=45, 6=60, 7=75, 8=120, 9=220, 10=450, 11=500,
-!* 12=750, 13=1000, 14=1250, 15=1500, 16=1750, 17=2000, 18=2500, 19=3000,
-!* 20=4000, 21=5000, 22=10000, 23=25000
-!* Regular:
+!* 1=10.625, 2=11.619, 3=12.656, 4=13.786, 5=15.017, 6=16.177, 7=17.427,
+!* 8=18.774, 9=20.225, 10=22.280, 11=24.543, 12=27.036, 13=29.783, 14=33.319
+!* 15=37.276, 16=41.702, 17=46.653, 18=49.634, 19=52.806, 20=56.180, 21=59.770,
+!* 22=63.785, 23=68.070, 24=72.642, 25=77.522, 26=86.586, 27=96.710, 28=108.018,
+!* 29=120.647, 30=139.90, 31=162.223, 32=188.108, 33=218.125, 34=262.319,
+!* 35=315.467, 36=379.384, 37=456.250
+!* Normal:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
+!*******************************************************************************
+EnergySwitch=2!1 for normal energy bins, 2 for Juno energy bins
+if(EnergySwitch.eq.1)then !Normal energy bins
+  nEnergies=nEnergiesNorm
+  allocate(IonEnergy(nEnergies))
+  IonEnergy=IonEnergyNorm
+elseif(EnergySwitch.eq.2)then !JEDI interpolated energy bins
+  nEnergies=nEnergiesJuno
+  allocate(IonEnergy(nEnergies))
+  IonEnergy=IonEnergyJuno
+end if
+!*******************************************************************************
+!******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
 nIons=50 !Number of ions that are precipitating
 call get_command_argument(1,arg)
