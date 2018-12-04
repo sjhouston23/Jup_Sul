@@ -11,30 +11,32 @@ axes1 = axes('Parent',Parent1);
 hold(axes1,'on');
 
 % Create multiple lines using matrix input to loglog
-loglog1 = loglog(X1,YMatrix1,'LineWidth',2,'Parent',axes1);
-set(loglog1(1),'DisplayName','S','Color',[1 0 0]);
-set(loglog1(2),'DisplayName','S^{+}','Color',[1 0.600000023841858 0]);
-set(loglog1(3),'DisplayName','S^{2+}',...
-    'Color',[0.800000011920929 0.800000011920929 0]);
-set(loglog1(4),'DisplayName','S^{3+}','Color',[0 1 0]);
-set(loglog1(5),'DisplayName','S^{4+}','Color',[0 0 1]);
-set(loglog1(6),'DisplayName','S^{5+}','Color',[0.600000023841858 0 1]);
-set(loglog1(7),'DisplayName','S^{6+}',...
-    'Color',[0.600000023841858 0 0.600000023841858]);
-set(loglog1(8),'DisplayName','S^{7+}','Color',[0 0 0]);
-set(loglog1(9),'DisplayName','S^{8+}','Color',[0 1 1]);
-set(loglog1(10),'DisplayName','S^{9+}','Color',[1 0 0],'LineStyle','--');
-set(loglog1(11),'DisplayName','S^{10+}','Color',[1 0.600000023841858 0],...
-    'LineStyle','--');
-set(loglog1(12),'DisplayName','S^{11+}',...
-    'Color',[0.800000011920929 0.800000011920929 0],'LineStyle','--');
-set(loglog1(13),'DisplayName','S^{12+}','Color',[0 1 0],'LineStyle','--');
-set(loglog1(14),'DisplayName','S^{13+}','Color',[0 0 1],'LineStyle','--');
-set(loglog1(15),'DisplayName','S^{14+}','Color',[0.600000023841858 0 1],...
-    'LineStyle','--');
-set(loglog1(16),'DisplayName','S^{15+}',...
-    'Color',[0.600000023841858 0 0.600000023841858],'LineStyle','--');
-set(loglog1(17),'DisplayName','S^{16+}','Color',[0 0 0],'LineStyle','--');
+loglog1 = loglog(X1,YMatrix1,'Parent',axes1,'LineWidth',2,...
+    'LineStyle','-.');
+set(loglog1(1),'DisplayName','S','Color',[0 0 0]);
+set(loglog1(2),'DisplayName','S^{+}',...
+    'Color',[0.501960813999176 0.501960813999176 0.501960813999176]);
+set(loglog1(3),'DisplayName','S^{++}','Color',[0 0.498039215803146 0]);
+set(loglog1(4),'DisplayName','S^{3+}','Color',[1 0 1]);
+set(loglog1(5),'DisplayName','S^{4+}',...
+    'Color',[0.850980401039124 0.325490206480026 0.0980392172932625]);
+set(loglog1(6),'DisplayName','S^{5+}','Color',[0 1 1]);
+set(loglog1(7),'DisplayName','S^{6+}','Color',[0 0 1]);
+set(loglog1(8),'DisplayName','S^{7+}','Color',[1 0 0]);
+set(loglog1(9),'DisplayName','S^{8+}','Color',[0 1 0]);
+set(loglog1(10),'DisplayName','S^{9+}','Color',[0 0 0],'LineStyle','-');
+set(loglog1(11),'DisplayName','S^{10+}',...
+    'Color',[0.501960813999176 0.501960813999176 0.501960813999176],...
+    'LineStyle','-');
+set(loglog1(12),'DisplayName','S^{11+}','Color',[0 0.498039215803146 0],...
+    'LineStyle','-');
+set(loglog1(13),'DisplayName','S^{12+}','Color',[1 0 1],'LineStyle','-');
+set(loglog1(14),'DisplayName','S^{13+}',...
+    'Color',[0.850980401039124 0.325490206480026 0.0980392172932625],...
+    'LineStyle','-');
+set(loglog1(15),'DisplayName','S^{14+}','Color',[0 1 1],'LineStyle','-');
+set(loglog1(16),'DisplayName','S^{15+}','Color',[0 0 1],'LineStyle','-');
+set(loglog1(17),'DisplayName','S^{16+}','Color',[1 0 0],'LineStyle','-');
 
 % Create ylabel
 ylabel('Cross-Section [cm^{-2}]','FontWeight','bold');
