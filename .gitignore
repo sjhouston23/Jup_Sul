@@ -9,6 +9,7 @@
 *.o
 *.icloud
 *.out
+*.numbers
 *~
 2Stream/input
 2Stream/common
