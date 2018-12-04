@@ -89,6 +89,10 @@ do tProc=1,nTargProc !Loop through every target process
     open(unit=101,file=trim(filename))
     write(101,1002) (i-1,i=1,17)
     do E=1,nInterpEnergies !Energy interpolation loop (1-2000 keV/u)
+      do ChS=1,nChS !Loop through every charge state
+        if(isnan(SIMxsInterp(tProc,pProc,ChS,E)))& !Get rid of any NaN values
+        SIMxsInterp(tProc,pProc,ChS,E)=0.0
+      end do !End loop through every charge state
       write(101,1001) real(E),(SIMxsInterp(tProc,pProc,ChS,E),ChS=1,nChS)
     end do !End energy interpolation loop (1-2000 keV/u)
     close(101)
