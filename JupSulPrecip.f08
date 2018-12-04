@@ -190,9 +190,6 @@ do tProc=1,nTargProc
   end do
 end do
 20300 format(F7.2,17(1x,ES9.3E2))
-! read(203,20300) SIMxs !SIM cross-section data
-! close(203) !Close SIM cross-section data
-! 20300 format (20(ES9.3E2,1x)) !Formatting for the file
 SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
 SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
 !**************************** Various Bin Creation *****************************

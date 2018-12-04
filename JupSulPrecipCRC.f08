@@ -191,9 +191,6 @@ do tProc=1,nTargProc
   end do
 end do
 20300 format(F7.2,17(1x,ES9.3E2))
-! read(203,20300) SIMxs !SIM cross-section data
-! close(203) !Close SIM cross-section data
-! 20300 format (20(ES9.3E2,1x)) !Formatting for the file
 SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
 SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
 !**************************** Various Bin Creation *****************************
@@ -233,7 +230,7 @@ end do
 !* Regular:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-nIons=100 !Number of ions that are precipitating
+nIons=50 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
 do run=9,9!,nEnergies !Loop through different initial ion energies
