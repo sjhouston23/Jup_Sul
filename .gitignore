@@ -17,6 +17,7 @@
 Atmosphere/Tp*
 Atmosphere/IRTF*
 Output/*
+OutputJuno/*
 Plotting Stuff
 SIMXS
 SIMXSInterp/*.dat
