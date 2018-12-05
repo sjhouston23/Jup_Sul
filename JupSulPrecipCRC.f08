@@ -247,7 +247,7 @@ end if
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-nIons=50 !Number of ions that are precipitating
+nIons=100 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
 do run=nEnergies,1,-1 !Loop through different initial ion energies
@@ -290,7 +290,7 @@ do run=nEnergies,1,-1 !Loop through different initial ion energies
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
     E=IonEnergy(run)   !Start with initial ion energy
-    ChS_init=nChS         !1 is an initial charge state of 0, 2 is +1
+    ChS_init=3         !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
