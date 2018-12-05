@@ -68,7 +68,7 @@ do run=1,nEnergiesJuno
   write(*,*) 'Reading in and combining files...'
   write(*,*) 'Number of files: ',nTrials,'At an energy of: ',energy,'keV/u.'
 !********************************* Initialize **********************************
-  nerr=0;start=1;HpComb=0.0;H2pComb=0.0;H2ExComb=0.0
+  nerr=0;start=1;HpComb=0.0;H2pComb=0.0;H2ExComb=0.0;SulVsEngComb=0.0
   collisionsComb=0;PhotonsCXComb=0.0;PhotonsDEComb=0.0;SPvsEngComb=0.0
   SIMxsTotvsEngComb=0.0;dEvsEngComb=0.0;dNvsEngComb=0.0;SIMxsTotxdEvsEngComb=0.0
   nSPionsComb=0
