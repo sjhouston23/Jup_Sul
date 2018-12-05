@@ -250,9 +250,9 @@ end if
 nIons=50 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
-do run=9,9!,nEnergies !Loop through different initial ion energies
+do run=nEnergies,1,-1 !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
-  energy=int(IonEnergy(run))
+  energy=nint(IonEnergy(run))
   write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Seeds.dat')") energy
   open(unit=205,file=filename,status='unknown',access='append',action='write')
   write(205,*) trial
