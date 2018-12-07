@@ -107,6 +107,7 @@ integer trial,excite,elect,disso,PID(2),nIons
 integer numSim,dpt,maxDpt
 
 integer(kind=int64),dimension(nTargProc,1+nProjProc) :: collisions !Counter
+real*8,dimension(nTargProc,1+nProjProc) :: dEcollisions !Counter
 integer(kind=int64),dimension(nTargProc,1+nProjProc,nChS,atmosLen) :: Sulfur
 real*8 incB,kappa,pangle
 real*8,dimension(nChS,nInterpEnergies) :: SIMxs_Total !SigTot for dN calculation
@@ -233,7 +234,7 @@ end do
 !* Normal:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-EnergySwitch=2!1 for normal energy bins, 2 for Juno energy bins
+EnergySwitch=1!1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
   nEnergies=nEnergiesNorm
   allocate(IonEnergy(nEnergies))
@@ -243,14 +244,16 @@ elseif(EnergySwitch.eq.2)then !JEDI interpolated energy bins
   allocate(IonEnergy(nEnergies))
   IonEnergy=IonEnergyJuno
 end if
+! write(*,'(37(F7.3,","))') (IonEnergyJuno(i)/2.0,i=1,37)
+! stop
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-nIons=10 !Number of ions that are precipitating
-trial=5 !The seed for the RNG
-do run=9,9!,nEnergies !Loop through different initial ion energies
+nIons=1000 !Number of ions that are precipitating
+trial=1 !The seed for the RNG
+do run=6,6!,nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
-  energy=int(IonEnergy(run))
+  energy=int(IonEnergy(run))+15
   write(*,*) "Number of ions:         ",nIons
   write(*,*) "Initial energy:         ",energy,'keV/u'
   write(*,*) "Trial number (RNG Seed):",trial
@@ -262,7 +265,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
   allocate(angle(nIons)) !Want the same number of angles as ions
   call ranlux(angle,nIons) !Calculate all the angles to be used
 !********************* Reset Counters For New Ion Energies *********************
-  Hp =0;totalElect=0
+  Hp =0;totalElect=0;dEcollisions=0.0
   H2p=0;Sulfur    =0;electFwd  =0;electBwd  =0;maxDpt   =0
   H2Ex  =0;collisions=0;SulVsEng  =0
   SPvsEng=0.0;SIMxsTotvsEng=0.0;dEvsEng=0.0;dNvsEng=0.0;nSPions=0
@@ -279,8 +282,8 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
     kappa =0.0         !Used to account for pitch angle
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
-    E=IonEnergy(run)   !Start with initial ion energy
-    ChS_init=2         !1 is an initial charge state of 0, 2 is +1
+    E=energy   !Start with initial ion energy
+    ChS_init=8         !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
@@ -303,6 +306,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
       dEsp=0.0;SIMxsTotSP=0.0;dEold=0.0 !Stopping power variables
       !*****************************
       call CollisionSim(nint(E),SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
+      ! PID(1)=DC;PID(2)=noPP;ChS=ChS;excite=2;elect=0;disso=2
       collisions(PID(1),PID(2))=collisions(PID(1),PID(2))+1 !Count collisions
 1000 continue
       l=l+1
@@ -431,6 +435,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
       if(dN.lt.0.0)then !Change in column density should never be less than 0
         write(206,10001) E,dEsp,dE,dN,dEold,PID(1),PID(2),ChS_old
       end if
+      dEcollisions(PID(1),PID(2))=dEcollisions(PID(1),PID(2))+dE
 !********************** Sulfur Charge State Distribution ***********************
       do j=1,nSulEngBins
         if(E.le.SulEngBins(j))then
@@ -454,9 +459,10 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
         end if
       end do
 4000 continue
-      E=E-dE
+      E=E-0.001!dE
+      ChS=ChS_init
       ChS_old=ChS !Assign newly acquired charge state to old variable
-      if(E.lt.1.0) goto 5000 !Stop once the energy is less than 1 keV/u
+      if(E.lt.185.0) goto 5000 !Stop once the energy is less than 1 keV/u
       if(i.eq.numSim)then
         write(*,*) 'JupSulPrecip.f08: ERROR: numSim not large enough.'
         write(*,*) 'JupSulPrecip.f08: Ion energy was: ',E
@@ -465,6 +471,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
     end do !End of i=1,numSim loop (E < 1 keV/u)
 5000 continue
   end do !End of ion=1,nIons loop
+  energy=210
 !******************************** Output Header ********************************
   write(*,*) '--------------------------NEW RUN---------------------------'
   write(*,*) 'Number of ions: ', nIons
@@ -568,6 +575,15 @@ end do
   do i=1,nOutputFiles
     close(100+i)
   end do
+  open(unit=300,file='./Output/210/dEcollisions.dat')
+
+  write(300,F03) (ProjColl(i),i=1,nProjProc) !Collisions header
+  do i=1,nTargProc !Total number of each type of collision
+    write(300,*) TargColl(i),(dEcollisions(i,j)/collisions(i,j),j=1,5),&
+      sum(dEcollisions(i,:))/sum(collisions(i,:))
+  end do
+  write(300,F4) !'--'
+  write(300,*) 'Sum ',(sum(dEcollisions(:,i)),i=1,nProjProc+1),sum(dEcollisions)
 
   call system_clock(t4,clock_rate,clock_max) !Elapsed time for a single energy
   hrs=int(real(t4-t3)/clock_rate/3600.0)
