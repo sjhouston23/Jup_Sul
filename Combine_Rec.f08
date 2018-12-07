@@ -14,8 +14,8 @@ implicit real*8(a-h,o-z)
 !**************************** Variable Declaration *****************************
 integer energy,atmosLen,ChS,err,start,run
 
-integer pProc,nProjProc !Number of projectile processes
-integer tProc,nTargProc !Number of target processes
+integer nProjProc !Number of projectile processes
+integer nTargProc !Number of target processes
 parameter(nProjProc=4,nTargProc=7)
 
 parameter(nChS=17,atmosLen=1544)
@@ -41,8 +41,6 @@ real*8,dimension(nSPBins) :: SPvsEngComb,SIMxsTotvsEngComb
 real*8,dimension(nSPBins) :: dEvsEngComb,dNvsEngComb,SIMxsTotxdEvsEngComb
 
 character(len=100) filename,files(nOutputFiles) !Output file names
-character(len=1) random_number_file
-character(len=4) dumChar
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
 data IonEnergyNorm/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
@@ -55,7 +53,7 @@ data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
      'Collisions','Photons_CX','Photons_DE','Stopping_Power',&
      '2Str_Elect_Fwd','2Str_Elect_Bwd'/
 !********************************* Initialize **********************************
-energy=0;nTrials=0;trial=0;nEnergies=0;IonEnergy=0.0
+energy=0;nTrials=0;trial=0;nEnergies=0
 !*******************************************************************************
 EnergySwitch=1!1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
