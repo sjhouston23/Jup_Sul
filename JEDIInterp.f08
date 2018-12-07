@@ -14,6 +14,7 @@ implicit real*8(a-h,o-z)
 !*******************************************************************************
 character(len=10),intent(in) :: version
 real*8,dimension(37),intent(out) :: Iflux
+real*8,dimension(34) :: Iflux_final
 
 parameter(nJebins=10,nSteps=3) !Number of JEDI energy bins
 !nSteps is the number of energy data points you want in between the JEDI points
@@ -58,7 +59,7 @@ write(*,1003)'Energy Bin:','JEDI Intensity:','Energy Bin Width:',&
 do i=1,nJebins !Convert to [counts/cm^2/s]
 !* The first 3 energy bins include both sulfur and oxygen. I'm assuming a 2:1
 !* ratio of oxygen:sulfur (from SO_2)
-  if(i.le.3)Jflux(i)=Jintensity(i)*2*pi*Jebins(i)*2/3
+  if(i.le.3)Jflux(i)=Jintensity(i)*2*pi*Jebins(i)*1/3
   if(i.ge.4)Jflux(i)=Jintensity(i)*2*pi*Jebins(i)
   write(*,1004)Jenergy(i),Jintensity(i),Jebins(i),Jflux(i)
 end do
@@ -102,11 +103,21 @@ do i=1,nInterp !Convert to [counts/cm^2/s]
 !* received in an email from Dennis Haggerty; however, Table 19 from the SSR
 !* publication concering JEDI would suggest it's more like 322.30.
   if(Iebins(i).le.387)then
-    Iflux(i)=Iintensity(i)*2*pi*Iebins(i)*2/3
+    Iflux(i)=Iintensity(i)*2*pi*Iebins(i)*1/3
   else
     Iflux(i)=Iintensity(i)*2*pi*Iebins(i)
   end if
   write(*,1004)Ienergy(i),Iintensity(i),Iebins(i),Iflux(i)
+end do
+j=1
+do i=1,34
+  if(i.eq.2.or.i.eq.5.or.i.eq.8)then
+    Iflux_final(i)=(Iflux(j)+Iflux(j+1))/2.0
+    j=j+1
+  else
+    Iflux_final(i)=Iflux(j)
+  end if
+  j=j+1
 end do
 
 1000 format('FILE: ',A5,'.d2s',/,'DATE: ',A10,/,'TIME: ',A12)
