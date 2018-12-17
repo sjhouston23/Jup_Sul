@@ -154,13 +154,17 @@ end do
 write(204,N01) !CX note
 write(205,N02) !DE note
 do i=1,2 !Loop through CX and DE headers
+  write(203+i,*) !Blank space
+  write(203+i,H09) !Initial input header
+  write(203+i,*) !Blank space
+  write(203+i,H05) !Altitude integrated photon production header
   write(203+i,H06) !Charge state header
 end do
 !* Altitude integrated photon production
 write(204,F06) 2.0,& !CX - TI, SC, SC+SPEX
-  (sum(JPhotonsCX(ChS,:))*2.0e5/norm,ChS=1,nChS)
+  (sum(JPhotonsCX(ChS,:))*2.0e5,ChS=1,nChS)
 write(205,F06) 2.0,& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
-  (sum(JPhotonsDE(ChS,:))*2.0e5/norm,ChS=1,nChS)
+  (sum(JPhotonsDE(ChS,:))*2.0e5,ChS=1,nChS)
 do i=1,2 !Loop through CX and DE headers
   write(203+i,*) !Blank space
   write(203+i,H07) !Photon production vs. altitude header
@@ -168,9 +172,9 @@ do i=1,2 !Loop through CX and DE headers
 end do
 do i=1,atmosLen
   write(204,F06) altitude(i),& !CX - TI, SC, SC+SPEX
-   (JPhotonsCX(ChS,i)/norm,ChS=1,nChS)
+   (JPhotonsCX(ChS,i),ChS=1,nChS)
   write(205,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
-   (JPhotonsDE(ChS,i)/norm,ChS=1,nChS)
+   (JPhotonsDE(ChS,i),ChS=1,nChS)
 end do
 do i=1,nOutputFiles
   close(200+i)
