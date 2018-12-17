@@ -232,9 +232,9 @@ do run=1,nEnergies
   end do
   !* Altitude integrated photon production
   write(206,F06) 2.0,& !CX - TI, SC, SC+SPEX
-    (sum(PhotonsCXComb(ChS,:))/norm,ChS=1,nChS)
+    (sum(PhotonsCXComb(ChS,:)*2e5)/norm,ChS=1,nChS)
   write(207,F06) 2.0,& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
-    (sum(PhotonsDEComb(ChS,:))/norm,ChS=1,nChS)
+    (sum(PhotonsDEComb(ChS,:)*2e5)/norm,ChS=1,nChS)
   do i=1,2 !Loop through CX and DE headers
     write(205+i,*) !Blank space
     write(205+i,H07) !Photon production vs. altitude header
