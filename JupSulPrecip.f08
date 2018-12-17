@@ -47,7 +47,7 @@ implicit none
 
 !**************************** Variable Declaration *****************************
 !* Do-loop variables:
-integer i,j,k,l,run,ion
+integer i,j,k,l,run,ion,n1,n2
 
 !* Computational time variables:
 integer t1,t2,clock_maxTotal,clock_rateTotal !Used to calculate comp. time
@@ -99,6 +99,7 @@ parameter(nSPBins=2000,SPBinSize=1.0)
 real*8 dEsp,SIMxsTotSP,dEold
 integer(kind=int64),dimension(nSPBins) :: nSPions
 real*8,dimension(nSPBins) :: SPBins,SPvsEng,SIMxsTotvsEng,dEvsEng,dNvsEng
+real*8,dimension(nTargProc,1+nProjProc,nSPBins) :: dEvsEngPID,ionsPID
 !MASS
 real*8 mass !Atomic mass of sulfur (32.065)
 parameter(mass=32.065)
@@ -169,7 +170,7 @@ data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
 call system_clock (t1,clock_rateTotal,clock_maxTotal)
 !**************************** Initialize Variables *****************************
 altitude=0.0;totalCD=0.0;totalDens=0.0;H=0.0;altDelta=0.0;SIMxs=0.0
-SIMxs_Total=0.0;SIMxs_Totaltmp=0.0;SulEngBins=0.0;SPBins=0.0
+SIMxs_Total=0.0;SIMxs_Totaltmp=0.0;SulEngBins=0.0;SPBins=0.0;dEvsEngPID=0.0
 !**************************** Create the Atmosphere ****************************
 open(unit=200,file='./Atmosphere/Input/JunoColumnDensity_2km.dat',status='old')
 open(unit=201,file='./Atmosphere/Input/JunoAtmosphere_2km.dat',status='old')
@@ -249,9 +250,14 @@ end if
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-nIons=1000 !Number of ions that are precipitating
+nIons=100!0 !Number of ions that are precipitating
 trial=1 !The seed for the RNG
 do run=6,6!,nEnergies !Loop through different initial ion energies
+! do n1=1,nTargProc
+! do n2=1,nProjProc+1
+!   PID(1)=n1
+!   PID(2)=n2
+!   trial=PID(1)*10+PID(2)
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=int(IonEnergy(run))+15
   write(*,*) "Number of ions:         ",nIons
@@ -274,6 +280,7 @@ do run=6,6!,nEnergies !Loop through different initial ion energies
   !SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SIMxsTotvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
   write(*,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
+  ! write(*,*) TargColl2(n1),'+',ProjColl2(n2)
   do ion=1,nIons !Each ion starts here
     !*****************************
     !Initial Conditions:
@@ -292,7 +299,7 @@ do run=6,6!,nEnergies !Loop through different initial ion energies
     !Beginning scale height (H) at 4 or 5 seems to be more accurate than 1-3
     l=0                !Used as index for dN calculation (ranVecA(l))
     excite=0           !CollisionSim outputs
-    PID=0              !Process identification numbers
+    ! PID=0              !Process identification numbers
     !*****************************
     pangle=(2.0*atan(1.0))-acos(angle(ion)) !Pitch angle calculation has a
     !cosine dist. Straight down is pitch angle of 0, random number must be 0
@@ -449,6 +456,8 @@ do run=6,6!,nEnergies !Loop through different initial ion energies
           SPvsEng(j)=SPvsEng(j)+dEsp !Stopping power vs energy
           SIMxsTotvsEng(j)=SIMxsTotvsEng(j)+SIMxsTotSP !Total cross-section vs energy
           dEvsEng(j)=dEvsEng(j)+dEold !Change in energy vs energy
+          dEvsEngPID(PID(1),PID(2),j)=dEvsEngPID(PID(1),PID(2),j)+dEold
+          ionsPID(PID(1),PID(2),j)=ionsPID(PID(1),PID(2),j)+1
           dNvsEng(j)=dNvsEng(j)+dN !Change in column density vs energy
           ! ProcessdE(j,processC(process),tempQold)=&
           !   ProcessdE(j,processC(process),tempQold)+dEold
@@ -557,7 +566,7 @@ do run=6,6!,nEnergies !Loop through different initial ion energies
   end do
 !*** Stopping power
   write(108,H10) !Stopping power header
-  do i=1,nSPBins !Loop through ever stopping power bin
+  do i=186,215!1,nSPBins !Loop through ever stopping power bin
     write(108,F07) SPBins(i)-(SPBinSize/2.0),&
       SPvsEng(i)/real(nSPions(i)**2),&
       SIMxsTotvsEng(i)/real(nSPions(i)),&
@@ -575,15 +584,16 @@ end do
   do i=1,nOutputFiles
     close(100+i)
   end do
-  open(unit=300,file='./Output/210/dEcollisions.dat')
-
-  write(300,F03) (ProjColl(i),i=1,nProjProc) !Collisions header
-  do i=1,nTargProc !Total number of each type of collision
-    write(300,*) TargColl(i),(dEcollisions(i,j)/collisions(i,j),j=1,5),&
-      sum(dEcollisions(i,:))/sum(collisions(i,:))
-  end do
-  write(300,F4) !'--'
-  write(300,*) 'Sum ',(sum(dEcollisions(:,i)),i=1,nProjProc+1),sum(dEcollisions)
+  ! open(unit=300,file='./Output/210/dEcollisions.dat')
+  !
+  ! write(300,F03) (ProjColl(i),i=1,nProjProc) !Collisions header
+  ! do i=1,nTargProc !Total number of each type of collision
+  !   write(300,*) TargColl(i),(dEcollisions(i,j)/collisions(i,j),j=1,5),&
+  !     sum(dEcollisions(i,:))/sum(collisions(i,:))
+  ! end do
+  ! write(300,F4) !'--'
+  ! write(300,*) 'Sum ',(sum(dEcollisions(:,i)),i=1,nProjProc+1),sum(dEcollisions)
+  ! close(300)
 
   call system_clock(t4,clock_rate,clock_max) !Elapsed time for a single energy
   hrs=int(real(t4-t3)/clock_rate/3600.0)
@@ -591,8 +601,18 @@ end do
   sec=mod(real(t4-t3)/clock_rate,60.0)
   ! write(*,*) 'Individual run elapsed real time = ',hrs,':',min,':',sec
   deallocate(angle) !Angle variable is reallocated for each energy
+end do !pProc
+end do !tProc
 end do !run=1,nEnergies
-
+open(unit=301,file='./Output/210/dEPID.dat')
+write(301,3002)((TargColl2(i),'+',ProjColl2(j),j=1,1+nProjProc),i=1,nTargProc)
+do i=186,215
+  write(301,3001) SPBins(i)-(SPBinSize/2.0),&
+    ((dEvsEngPID(j,k,i)/ionsPID(j,k,i),k=1,1+nProjProc),j=1,nTargProc)
+end do
+close(301)
+3001 format(1x,F8.2,6x,35(F8.2,2x))
+3002 format(15x,35(A4,A1,A4,1x))
 
 call system_clock (t2,clock_rateTotal,clock_maxTotal) !Total elapsed time
 hrs=int(real(t2-t1)/clock_rateTotal/3600.0)
