@@ -279,7 +279,7 @@ do run=nEnergies,1,-1 !Loop through different initial ion energies
   ! pH2p=0.0;totO      =0;dNvsEng =0.0;oxygenCX=0.0;prode2stF  =0.0;prode2stB=0.0
   !SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SIMxsTotvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
-  write(206,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
+  write(206,*) 'Starting Ion Precipitation: ', energy,'keV/u' !Double check energy
   flush(206)
   do ion=1,nIons !Each ion starts here
     !*****************************

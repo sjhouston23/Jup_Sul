@@ -197,6 +197,15 @@ end do
 20300 format(F7.2,17(1x,ES9.3E2))
 SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
 SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
+open(unit=204,file='./SIMXS_Total.dat')
+write(204,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
+&S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
+&     S^13+     S^14+     S^15+     S^16+'
+do i=1,nInterpEnergies
+  write(204,20400) i,(SIMxs_Total(ChS,i),ChS=1,nChS)
+end do
+20400 format(I7,17(2x,ES8.2E2))
+stop
 !**************************** Various Bin Creation *****************************
 ! !2-Stream energy bins:
 ! do i=1,nE2strBins
@@ -250,7 +259,7 @@ end if
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-nIons=100!0 !Number of ions that are precipitating
+nIons=200!0 !Number of ions that are precipitating
 trial=1 !The seed for the RNG
 do run=6,6!,nEnergies !Loop through different initial ion energies
 ! do n1=1,nTargProc
@@ -279,7 +288,7 @@ do run=6,6!,nEnergies !Loop through different initial ion energies
   ! pH2p=0.0;totO      =0;dNvsEng =0.0;oxygenCX=0.0;prode2stF  =0.0;prode2stB=0.0
   !SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SIMxsTotvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
-  write(*,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
+  write(*,*) 'Starting Ion Precipitation: ', energy,'keV/u' !Double check energy
   ! write(*,*) TargColl2(n1),'+',ProjColl2(n2)
   do ion=1,nIons !Each ion starts here
     !*****************************
@@ -312,6 +321,7 @@ do run=6,6!,nEnergies !Loop through different initial ion energies
       dN=0.0;dZ=0.0;dE=0.0 !Change in column density, altitude, energy
       dEsp=0.0;SIMxsTotSP=0.0;dEold=0.0 !Stopping power variables
       !*****************************
+      PID(1)=TEX;PID(2)=SPEX
       call CollisionSim(nint(E),SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
       ! PID(1)=DC;PID(2)=noPP;ChS=ChS;excite=2;elect=0;disso=2
       collisions(PID(1),PID(2))=collisions(PID(1),PID(2))+1 !Count collisions
@@ -601,18 +611,18 @@ end do
   sec=mod(real(t4-t3)/clock_rate,60.0)
   ! write(*,*) 'Individual run elapsed real time = ',hrs,':',min,':',sec
   deallocate(angle) !Angle variable is reallocated for each energy
-end do !pProc
-end do !tProc
+! end do !pProc
+! end do !tProc
 end do !run=1,nEnergies
-open(unit=301,file='./Output/210/dEPID.dat')
-write(301,3002)((TargColl2(i),'+',ProjColl2(j),j=1,1+nProjProc),i=1,nTargProc)
-do i=186,215
-  write(301,3001) SPBins(i)-(SPBinSize/2.0),&
-    ((dEvsEngPID(j,k,i)/ionsPID(j,k,i),k=1,1+nProjProc),j=1,nTargProc)
-end do
-close(301)
-3001 format(1x,F8.2,6x,35(F8.2,2x))
-3002 format(15x,35(A4,A1,A4,1x))
+! open(unit=301,file='./Output/210/dEPID.dat')
+! write(301,3002)((TargColl2(i),'+',ProjColl2(j),j=1,1+nProjProc),i=1,nTargProc)
+! do i=186,215
+!   write(301,3001) SPBins(i)-(SPBinSize/2.0),&
+!     ((dEvsEngPID(j,k,i)/ionsPID(j,k,i),k=1,1+nProjProc),j=1,nTargProc)
+! end do
+! close(301)
+! 3001 format(1x,F8.2,6x,35(F8.2,2x))
+! 3002 format(15x,35(A4,A1,A4,1x))
 
 call system_clock (t2,clock_rateTotal,clock_maxTotal) !Total elapsed time
 hrs=int(real(t2-t1)/clock_rateTotal/3600.0)
