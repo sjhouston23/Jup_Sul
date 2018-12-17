@@ -55,9 +55,9 @@ subroutine CollisionSim(E,SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
 implicit real*8(a-h,o-z)
 
 !**************************** Variable Declaration *****************************
-integer,intent(in) :: E
+integer,intent(in) :: E,PID(2)
 integer,intent(inout) :: ChS
-integer,intent(out) :: excite,elect,disso,PID(2)
+integer,intent(out) :: excite,elect,disso!,PID(2)
 
 integer SI,DI,TI,DCAI,SC,DC,TEX !Target processes
 integer SS,DS,SPEX,DPEX !Projectile processes
@@ -82,12 +82,13 @@ real*8,dimension(nTargProc,1+nProjProc) :: Prob
 
 real ranVecB(1) !Number from RNG
 !**************************** Initialize Variables *****************************
-Prob=0.0;excite=0;elect=0;diss=0;PID=0;sumProb=0.0
+Prob=0.0;excite=0;elect=0;diss=0!;PID=0;sumProb=0.0
 !******************************** Main Program *********************************
 !******************** Collision-Type Probability Calculation *******************
 !* Calculate the transition probabilities by taking the collision process XS and
 !* dividing it by the total cross-section.
 !*******************************************************************************
+goto 2000
 do tProc=1,nTargProc !Loop through every target process
   do pProc=1,nProjProc+1 !Loop through every projectile process plus 1
     Prob(tProc,pProc)=SIMxs(tProc,pProc,ChS,E)/SIMxs_Total(ChS,E)
@@ -154,8 +155,11 @@ write(206,*)'CollisionSim.f08: ERROR: Random number greater than normalized &
 &probability:', ranVecB(1), sumProb
 STOP 'CollisionSim.f08: Stopping program...'
 1000 continue
-PID(1)=tProc
-PID(2)=pProc !1 is nothing, 2-5 are SS, DS, SPEX, DPEX
+! PID(1)=tProc
+! PID(2)=pProc !1 is nothing, 2-5 are SS, DS, SPEX, DPEX
+2000 continue
+tProc=PID(1)
+pProc=PID(2)
 if(tProc.eq.SI)then !Single Ionization
   ChS=ChS !Charge state stays the same
   excite=0 !Ion isn't excited

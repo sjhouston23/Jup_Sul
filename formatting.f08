@@ -75,8 +75,11 @@ F07="(1x,F8.2,6x,2(ES9.2,1x),F8.2,2(1x,ES9.2),1x,I11)",&
 F2Str="(1x,1P10E11.3)"  !Electron 2-stream formatting (912)
 !****************************** Processes Header *******************************
 character(len=8) TargColl(7),ProjColl(4)
+character(len=4) TargColl2(7),ProjColl2(5)
 data TargColl/'SI      ','DI      ','TI      ','DCAI    ','SC      ',&
               'DC      ','TEX     '/
 data ProjColl/'SS      ','DS      ','SPEX    ','DPEX    '/
+data TargColl2/'  SI','  DI','  TI','DCAI','  SC','  DC',' TEX'/
+data ProjColl2/'    ','SS  ','DS  ','SPEX','DPEX'/
 
 end module
