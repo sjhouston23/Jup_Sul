@@ -22,5 +22,8 @@ OutputNorm/*
 JunoData/*
 Plotting Stuff
 SIMXS
+SIMXS*
+NSIMXS*
+XS*
 SIMXSInterp/*.dat
 NSIM*.txt
