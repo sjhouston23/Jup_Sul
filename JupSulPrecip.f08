@@ -113,6 +113,7 @@ integer(kind=int64),dimension(nTargProc,1+nProjProc,nChS,atmosLen) :: Sulfur
 real*8 incB,kappa,pangle
 real*8,dimension(nChS,nInterpEnergies) :: SIMxs_Total !SigTot for dN calculation
 real*8,dimension(1+nProjProc,nChS,nInterpEnergies) :: SIMxs_Totaltmp
+real*8,dimension(nTargProc,nChS,nInterpEnergies) :: SIMxs_Totaltarg
 real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxs !All SIMxs
 !* SIMxs has an additonal projectile process which is no projectile process
 !* i.e. SI, SI+SS, SI+DS, SI+SPEX, SI+DPEX (respectively)
@@ -151,6 +152,9 @@ real,allocatable :: angle(:)
 integer nOutputFiles !Number of output files
 parameter(nOutputFiles=10)
 character(len=100) filename,files(nOutputFiles) !Output file names
+
+
+real*8,dimension(nChS,nEnergiesNorm,nTargProc) :: NSIMxs !NSIM cross-sectionss
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
 data IonEnergyNorm/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
@@ -182,6 +186,35 @@ do i=1,atmosLen
 end do
 close(200) !Close column density file
 close(201) !Close atmosphere file
+
+
+open(unit=101,file='NSIMall1.txt')
+do tProc=1,nTargProc
+  read(101,*) !Skip process line
+  read(101,*) !Skip header
+  do Eng=1,nEnergiesNorm
+    read(101,1230) (NSIMxs(ChS,Eng,tProc),ChS=1,nChS)
+  end do
+  if(tProc.eq.4)then !Skip SS and DS
+    do i=1,2
+      read(101,*)
+      read(101,*)
+      do Eng=1,nEnergiesNorm
+        read(101,*)
+      end do
+    end do
+  end if
+end do
+close(101)
+open(unit=205,file='./NSIMXS_total.dat')
+write(205,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
+&S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
+&     S^13+     S^14+     S^15+     S^16+'
+do i=1,nEnergiesNorm
+  write(205,20400) i,(sum(NSIMxs(ChS,i,:)),ChS=1,nChS)
+end do
+1230 format(7x,17(2x,ES8.2E2))
+close(205)
 !*************************** Get SIM cross-sections ****************************
 open(unit=203,file='./SIMXSInterp/SIMXSInterpAll.txt',status='old')
 do tProc=1,nTargProc
@@ -195,17 +228,24 @@ do tProc=1,nTargProc
   end do
 end do
 20300 format(F7.2,17(1x,ES9.3E2))
-SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
-SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
-open(unit=204,file='./SIMXS_Total.dat')
-write(204,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
-&S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
-&     S^13+     S^14+     S^15+     S^16+'
-do i=1,nInterpEnergies
-  write(204,20400) i,(SIMxs_Total(ChS,i),ChS=1,nChS)
+open(unit=204,file='./SIMXSInterp_TotalOG.dat',status='old')
+read(204,*)
+do Eng=1,nInterpEnergies
+  read(204,20400) ndum,(SIMxs_Total(ChS,Eng),ChS=1,nChS)
 end do
+! SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
+! SIMxs_Totaltarg=sum(SIMxs,dim=2) !Total cross-section for target processes
+! SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
+! open(unit=204,file='./SIMXS_TotalTEX.dat')
+! write(204,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
+! &S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
+! &     S^13+     S^14+     S^15+     S^16+'
+! do i=1,nInterpEnergies
+!   write(204,20400) i,(SIMxs_Totaltarg(TEX,ChS,i),ChS=1,nChS)
+! end do
 20400 format(I7,17(2x,ES8.2E2))
-stop
+! close(204)
+! stop
 !**************************** Various Bin Creation *****************************
 ! !2-Stream energy bins:
 ! do i=1,nE2strBins
