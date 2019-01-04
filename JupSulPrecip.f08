@@ -361,7 +361,7 @@ do run=6,6!,nEnergies !Loop through different initial ion energies
       dN=0.0;dZ=0.0;dE=0.0 !Change in column density, altitude, energy
       dEsp=0.0;SIMxsTotSP=0.0;dEold=0.0 !Stopping power variables
       !*****************************
-      PID(1)=TEX;PID(2)=SPEX
+      ! PID(1)=TEX;PID(2)=SPEX
       call CollisionSim(nint(E),SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
       ! PID(1)=DC;PID(2)=noPP;ChS=ChS;excite=2;elect=0;disso=2
       collisions(PID(1),PID(2))=collisions(PID(1),PID(2))+1 !Count collisions
