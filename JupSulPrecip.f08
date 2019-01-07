@@ -47,7 +47,7 @@ implicit none
 
 !**************************** Variable Declaration *****************************
 !* Do-loop variables:
-integer i,j,k,l,run,ion
+integer i,j,k,l,run,ion,intdum
 
 !* Computational time variables:
 integer t1,t2,clock_maxTotal,clock_rateTotal !Used to calculate comp. time
@@ -193,8 +193,15 @@ do tProc=1,nTargProc
   end do
 end do
 20300 format(F7.2,17(1x,ES9.3E2))
-SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
-SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
+! SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
+! SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
+open(unit=204,file='./SIMXSInterp_TotalOG.dat',status='old')
+read(204,*)
+do Eng=1,nInterpEnergies
+  read(204,20400) intdum,(SIMxs_Total(ChS,Eng),ChS=1,nChS)
+end do
+
+20400 format(I7,17(2x,ES8.2E2))
 !**************************** Various Bin Creation *****************************
 ! !2-Stream energy bins:
 ! do i=1,nE2strBins
@@ -233,7 +240,7 @@ end do
 !* Normal:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-EnergySwitch=2!1 for normal energy bins, 2 for Juno energy bins
+EnergySwitch=1 !1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
   nEnergies=nEnergiesNorm
   allocate(IonEnergy(nEnergies))
@@ -246,9 +253,9 @@ end if
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-nIons=10 !Number of ions that are precipitating
+nIons=100 !Number of ions that are precipitating
 trial=5 !The seed for the RNG
-do run=9,9!,nEnergies !Loop through different initial ion energies
+do run=7,7!,nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=int(IonEnergy(run))
   write(*,*) "Number of ions:         ",nIons
