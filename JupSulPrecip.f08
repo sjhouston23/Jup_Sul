@@ -47,7 +47,7 @@ implicit none
 
 !**************************** Variable Declaration *****************************
 !* Do-loop variables:
-integer i,j,k,l,run,ion,n1,n2
+integer i,j,k,l,run,ion,n1,n2,intdum
 
 !* Computational time variables:
 integer t1,t2,clock_maxTotal,clock_rateTotal !Used to calculate comp. time
@@ -228,14 +228,14 @@ do tProc=1,nTargProc
   end do
 end do
 20300 format(F7.2,17(1x,ES9.3E2))
-open(unit=204,file='./SIMXSInterp_TotalOG.dat',status='old')
-read(204,*)
-do Eng=1,nInterpEnergies
-  read(204,20400) ndum,(SIMxs_Total(ChS,Eng),ChS=1,nChS)
-end do
-! SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
+! open(unit=204,file='./SIMXSInterp_TotalOG.dat',status='old')
+! read(204,*)
+! do Eng=1,nInterpEnergies
+!   read(204,20400) intdum,(SIMxs_Total(ChS,Eng),ChS=1,nChS)
+! end do
+SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
 ! SIMxs_Totaltarg=sum(SIMxs,dim=2) !Total cross-section for target processes
-! SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
+SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
 ! open(unit=204,file='./SIMXS_TotalTEX.dat')
 ! write(204,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
 ! &S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
@@ -299,16 +299,16 @@ end if
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-nIons=200!0 !Number of ions that are precipitating
+nIons=1!200!0 !Number of ions that are precipitating
 trial=1 !The seed for the RNG
-do run=6,6!,nEnergies !Loop through different initial ion energies
+do run=9,9!,nEnergies !Loop through different initial ion energies
 ! do n1=1,nTargProc
 ! do n2=1,nProjProc+1
 !   PID(1)=n1
 !   PID(2)=n2
 !   trial=PID(1)*10+PID(2)
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
-  energy=int(IonEnergy(run))+15
+  energy=int(IonEnergy(run))!+15
   write(*,*) "Number of ions:         ",nIons
   write(*,*) "Initial energy:         ",energy,'keV/u'
   write(*,*) "Trial number (RNG Seed):",trial
@@ -518,10 +518,10 @@ do run=6,6!,nEnergies !Loop through different initial ion energies
         end if
       end do
 4000 continue
-      E=E-0.001!dE
+      E=E-dE
       ChS=ChS_init
       ChS_old=ChS !Assign newly acquired charge state to old variable
-      if(E.lt.185.0) goto 5000 !Stop once the energy is less than 1 keV/u
+      if(E.lt.1.0) goto 5000 !Stop once the energy is less than 1 keV/u
       if(i.eq.numSim)then
         write(*,*) 'JupSulPrecip.f08: ERROR: numSim not large enough.'
         write(*,*) 'JupSulPrecip.f08: Ion energy was: ',E
@@ -530,7 +530,7 @@ do run=6,6!,nEnergies !Loop through different initial ion energies
     end do !End of i=1,numSim loop (E < 1 keV/u)
 5000 continue
   end do !End of ion=1,nIons loop
-  energy=210
+  ! energy=210
 !******************************** Output Header ********************************
   write(*,*) '--------------------------NEW RUN---------------------------'
   write(*,*) 'Number of ions: ', nIons
@@ -616,7 +616,7 @@ do run=6,6!,nEnergies !Loop through different initial ion energies
   end do
 !*** Stopping power
   write(108,H10) !Stopping power header
-  do i=186,215!1,nSPBins !Loop through ever stopping power bin
+  do i=2,nSPBins !Loop through ever stopping power bin
     write(108,F07) SPBins(i)-(SPBinSize/2.0),&
       SPvsEng(i)/real(nSPions(i)**2),&
       SIMxsTotvsEng(i)/real(nSPions(i)),&
