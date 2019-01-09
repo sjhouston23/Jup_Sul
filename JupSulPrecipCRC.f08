@@ -247,10 +247,10 @@ end if
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-nIons=100 !Number of ions that are precipitating
+nIons=150 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
-do run=nEnergies,1,-1 !Loop through different initial ion energies
+do run=9,9!nEnergies,1,-1 !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=nint(IonEnergy(run))
   write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Seeds.dat')") energy
@@ -279,7 +279,7 @@ do run=nEnergies,1,-1 !Loop through different initial ion energies
   ! pH2p=0.0;totO      =0;dNvsEng =0.0;oxygenCX=0.0;prode2stF  =0.0;prode2stB=0.0
   !SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SIMxsTotvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
-  write(206,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
+  write(206,*) 'Starting Ion Precipitation: ', energy,'keV/u' !Double check energy
   flush(206)
   do ion=1,nIons !Each ion starts here
     !*****************************
@@ -290,7 +290,11 @@ do run=nEnergies,1,-1 !Loop through different initial ion energies
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
     E=IonEnergy(run)   !Start with initial ion energy
+<<<<<<< HEAD
     ChS_init=nChs         !1 is an initial charge state of 0, 2 is +1
+=======
+    ChS_init=nChS         !1 is an initial charge state of 0, 2 is +1
+>>>>>>> 0ded3014e9467e98ff460aec338b6b712fcd1c7a
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
