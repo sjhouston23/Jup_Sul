@@ -9,9 +9,12 @@ program InterpolateSIMXS
 !* with SIMXSCalculation.f08 in the SulfurXS directory.
 !*******************************************************************************
 
-implicit real*8(a-h,o-z)
+implicit none!real*8(a-h,o-z)
 
 !**************************** Variable Declaration *****************************
+
+integer i,j,k,l,m,n
+integer nProjProc,nTargProc,nEnergies,nInterpEnergies,nChS,ndum
 
 integer ChS,Eng,E !Charge state and energy
 integer pProc,tProc !Projectile and target process
@@ -27,6 +30,8 @@ parameter(SI=1,DI=2,TI=3,DA=4,SC=5,DC=6,TEX=7) !Target process numbers
 parameter(SS=1,DS=2,SPEX=3,DPEX=4) !Projectile process numbers
 
 real*8,dimension(nEnergies) :: Energy !Each initial energy
+real*8,dimension(nEnergies) :: SIMxs_tmp,SIMxs_tmp2
+real*8 SIMxs_tmpI,SpE !Spline variables
 real*8,dimension(nEnergies,nChS) :: SigTot
 real*8,dimension(nInterpEnergies,nChS) :: SigTotInterp
 real*8,dimension(nChS,nEnergies,nTargProc,1+nProjProc) :: SIMxs !SIMxs points
@@ -45,7 +50,8 @@ data TargProcCap/'SI  ','DI  ','TI  ','DCAI','SC  ','DC  ','TEX '/
 data TargProcCap2/'  SI','  DI','  TI','DCAI','  SC','  DC',' TEX'/
 data ProjProcCap/'     ','+SS  ','+DS  ','+SPEX','+DPEX'/
 !**************************** Initialize Variables *****************************
-SIMxs=0.0;SIMxsInterp=0.0;SigTot=0.0;SigTotInterp=0.0
+SIMxs=0.0;SIMxsInterp=0.0;SigTot=0.0;SigTotInterp=0.0;SIMxs_tmp=0.0
+SIMxs_tmp2=0.0;SIMxs_tmpI=0.0
 !******************************** Main Program *********************************
 ! open(unit=100,file='./SIMXS/SIMXSall.dat',status='old')!All SIMxs data in a file
 ! read(100,*) !Skip first line
@@ -82,27 +88,39 @@ do tProc=1,nTargProc !Loop through every target process
   do pProc=1,nProjProc+1 !Loop through every projectile process plus 1
     do ChS=1,nChS !Loop through every charge state (0-16)
       Eng=1 !Set Eng variable back to 1
+      SpE=0.0
       do E=1,nInterpEnergies !Interpolation loop (1-2000 keV/u)
+        SpE=SpE+1.0
         if(E.ge.Energy(Eng+1)) Eng=Eng+1 !Go to next Energy when appropriate
         if(E.eq.2000) Eng=8 !Don't want Eng to go out of bounds
         SIMxsInterp(tProc,pProc,ChS,E)=log(SIMxs(ChS,Eng,tProc,pProc))+&
         (log(real(E))-log(Energy(Eng)))*&
         (log(SIMxs(ChS,Eng+1,tProc,pProc))-log(SIMxs(ChS,Eng,tProc,pProc)))/&
         (log(Energy(Eng+1))-log(Energy(Eng)))
-        ! SIMxsInterp(tProc,pProc,ChS,E)=(SIMxs(ChS,Eng,tProc,pProc))+&
-        ! ((real(E))-(Energy(Eng)))*&
-        ! ((SIMxs(ChS,Eng+1,tProc,pProc))-(SIMxs(ChS,Eng,tProc,pProc)))/&
-        ! ((Energy(Eng+1))-(Energy(Eng)))
-        ! write(206,*) E,exp(SIMxsInterp(tProc,pProc,ChS,E))!,Energy(Eng)
+
         SIMxsInterp(tProc,pProc,ChS,E)=exp(SIMxsInterp(tProc,pProc,ChS,E))
-        if(tProc.eq.1.and.pProc.eq.1)then
-          SigTotInterp(E,ChS)=log(SigTot(Eng,ChS))+&
-          (log(real(E))-log(Energy(Eng)))*&
-          (log(SigTot(Eng+1,ChS))-log(SigTot(Eng,ChS)))/&
-          (log(Energy(Eng+1))-log(Energy(Eng)))
-          SigTotInterp(E,ChS)=exp(SigTotInterp(E,ChS))
-          ! write(*,*) E,SigTotInterp(E,ChS)!,Energy(Eng)
+
+        if(E.ge.10.and.E.le.1000)then
+          if(E.eq.10)then
+            do i=1,nEnergies
+              SIMxs_tmp(i)=SIMxs(ChS,i,tProc,pProc) !Create a vector for spline
+            end do
+          end if
+          call spline(log(Energy),log(SIMxs_tmp),nEnergies,SIMxs_tmp2)
+          call splineinterp(log(SpE),log(Energy),log(SIMxs_tmp),nEnergies,&
+                            SIMxs_tmp2,SIMxs_tmpI)
+          SIMxsInterp(tProc,pProc,ChS,E)=exp(SIMxs_tmpI)
+          ! write(*,*) E,SpE,Energy(Eng),SIMxs_tmp(Eng),nEnergies,SIMxs_tmp2(Eng),exp(SIMxs_tmpI),SIMxs_tmpI
         end if
+        ! write(*,*) E,SIMxsInterp(tProc,pProc,ChS,E)
+        ! if(tProc.eq.1.and.pProc.eq.1)then
+        !   SigTotInterp(E,ChS)=log(SigTot(Eng,ChS))+&
+        !   (log(real(E))-log(Energy(Eng)))*&
+        !   (log(SigTot(Eng+1,ChS))-log(SigTot(Eng,ChS)))/&
+        !   (log(Energy(Eng+1))-log(Energy(Eng)))
+        !   SigTotInterp(E,ChS)=exp(SigTotInterp(E,ChS))
+        !   ! write(*,*) E,SigTotInterp(E,ChS)!,Energy(Eng)
+        ! end if
       end do !End interpolation loop (1-2000 keV/u)
     end do !End loop through every charge state (0-16)
   end do !End loop through every projectile process plus 1
@@ -158,7 +176,11 @@ close(103)
 ! open(unit=103,file='./SIMXSInterp/SIMXSInterpAll.dat')
 ! write(103,1100) exp(SIMxsInterp) !Write out every cross-section to a single file
 ! close(103)
-
+do eng=1,nInterpEnergies
+  do ChS=1,nChS
+    SigTotInterp(Eng,ChS)=sum(SIMxsInterp(:,:,ChS,Eng))
+  end do
+end do
 open(unit=205,file='./SIMXSInterp_TotalOG.dat')
 write(205,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
 &S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
