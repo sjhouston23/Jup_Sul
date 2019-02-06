@@ -27,8 +27,9 @@ parameter(nEnergies=9) !Number of inital energies
 parameter(nInterpEnergies=2000) !Number of interpolated energies
 parameter(nChS=17) !Number of charge states from 0-16
 parameter(SI=1,DI=2,TI=3,DA=4,SC=5,DC=6,TEX=7) !Target process numbers
-parameter(SS=1,DS=2,SPEX=3,DPEX=4) !Projectile process numbers
+parameter(SS=2,DS=3,SPEX=4,DPEX=5) !Projectile process numbers
 
+! integer,dimension(nTargProc,1+nProjProc,nChS,2) :: Spline_Limits
 real*8,dimension(nEnergies) :: Energy !Each initial energy
 real*8,dimension(nEnergies) :: SIMxs_tmp,SIMxs_tmp2
 real*8 SIMxs_tmpI,SpE !Spline variables
@@ -58,7 +59,7 @@ SIMxs_tmp2=0.0;SIMxs_tmpI=0.0
 ! read(100,1000) SIMxs !Read in all the data
 ! close(100) !Close the file
 
-open(unit=100,file='./SIMXS/SIMXSfinal1.txt',status='old')
+open(unit=100,file='./SIMXS/SIMXS_E-24.txt',status='old')
 do tProc=1,nTargProc
   do pProc=1,nProjProc+1
     do i=1,2
@@ -101,6 +102,21 @@ do tProc=1,nTargProc !Loop through every target process
         SIMxsInterp(tProc,pProc,ChS,E)=exp(SIMxsInterp(tProc,pProc,ChS,E))
 
         if(E.ge.10.and.E.le.1000)then
+          if(tProc.eq.1.and.pProc.gt.1.and.ChS.ge.8)goto 9000 !SI processes
+          if(tProc.eq.1.and.pProc.eq.5)goto 9000 !SI+DPEX
+          if(tProc.eq.2.and.pProc.gt.1.and.ChS.ge.9)goto 9000 !DI processes
+          if(tProc.eq.2.and.pProc.eq.3.and.ChS.ge.8)goto 9000 !DI+DS
+          if(tProc.eq.2.and.pProc.eq.5.and.ChS.ge.8)goto 9000 !DI+DPEX
+          if(tProc.eq.3.and.pProc.eq.1.and.ChS.le.3)goto 9000 !TI
+          if(tProc.eq.3.and.pProc.gt.1.and.ChS.ge.10)goto 9000 !TI processes
+          if(tProc.eq.4.and.pProc.eq.1.and.ChS.le.7)goto 9000 !DCAI
+          if(tProc.eq.4.and.pProc.gt.1)goto 9000 !DCAI processes
+          if(tProc.eq.5.and.pProc.gt.1.and.ChS.ge.8)goto 9000 !SC processes
+          if(tProc.eq.6.and.pProc.eq.1.and.ChS.le.6)goto 9000 !DC
+          if(tProc.eq.6.and.pProc.eq.1.and.ChS.ge.9)goto 9000 !DC
+          if(tProc.eq.6.and.pProc.gt.1.and.ChS.eq.3)goto 9000 !DC S^++
+          if(tProc.eq.6.and.pProc.gt.1.and.ChS.ge.8)goto 9000 !DC S^++
+          if(tProc.eq.7.and.pProc.gt.1.and.ChS.ge.6)goto 9000 !TEX processes
           if(E.eq.10)then
             do i=1,nEnergies
               SIMxs_tmp(i)=SIMxs(ChS,i,tProc,pProc) !Create a vector for spline
@@ -112,6 +128,11 @@ do tProc=1,nTargProc !Loop through every target process
           SIMxsInterp(tProc,pProc,ChS,E)=exp(SIMxs_tmpI)
           ! write(*,*) E,SpE,Energy(Eng),SIMxs_tmp(Eng),nEnergies,SIMxs_tmp2(Eng),exp(SIMxs_tmpI),SIMxs_tmpI
         end if
+        9000 continue
+        ! if(SIMxsInterp(tProc,pProc,ChS,E).ge.3E-14)then
+        !   write(*,*) SIMxsInterp(tProc,pProc,ChS,E),tProc,pProc,ChS,E
+        !   stop
+        ! end if
         ! write(*,*) E,SIMxsInterp(tProc,pProc,ChS,E)
         ! if(tProc.eq.1.and.pProc.eq.1)then
         !   SigTotInterp(E,ChS)=log(SigTot(Eng,ChS))+&
