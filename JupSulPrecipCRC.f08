@@ -47,7 +47,7 @@ implicit none
 
 !**************************** Variable Declaration *****************************
 !* Do-loop variables:
-integer i,j,k,l,run,ion
+integer i,j,k,l,run,ion,intdum
 
 !* Computational time variables:
 integer t1,t2,clock_maxTotal,clock_rateTotal !Used to calculate comp. time
@@ -194,8 +194,14 @@ do tProc=1,nTargProc
   end do
 end do
 20300 format(F7.2,17(1x,ES9.3E2))
-SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
-SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
+! SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
+! SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
+open(unit=204,file='./SIMXSInterp_TotalOG.dat',status='old')
+read(204,*)
+do Eng=1,nInterpEnergies
+  read(204,20400) intdum,(SIMxs_Total(ChS,Eng),ChS=1,nChS)
+end do
+20400 format(I7,17(2x,ES8.2E2))
 !**************************** Various Bin Creation *****************************
 ! !2-Stream energy bins:
 ! do i=1,nE2strBins
@@ -542,7 +548,7 @@ do run=1,1!nEnergies,1,-1 !Loop through different initial ion energies
   !* Altitude integrated photon production
   write(106,F06) altDelta(1),& !CX - TI, SC, SC+SPEX
     (real(sum(sulfur(TI,noPP,ChS,:))+sum(sulfur(SC,noPP,ChS,:))+&
-    sum(sulfur(SC,SPEX,ChS,:)))/norm,ChS=1,nChS)
+    sum(sulfur(SC,SS,ChS,:)))/norm,ChS=1,nChS)
   write(107,F06) altDelta(1),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
     (real(sum(sulfur(SI,SPEX,ChS,:))+sum(sulfur(DI,SPEX,ChS,:))+&
     sum(sulfur(TEX,SPEX,ChS,:)))/norm,ChS=1,nChS)
@@ -553,7 +559,7 @@ do run=1,1!nEnergies,1,-1 !Loop through different initial ion energies
   end do
   do i=1,atmosLen
     write(106,F06) altitude(i),& !CX - TI, SC, SC+SPEX
-     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SPEX,ChS,i))/&
+     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SS,ChS,i))/&
      norm,ChS=1,nChS)
     write(107,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
      (real(sulfur(SI,SPEX,ChS,i)+sulfur(DI,SPEX,ChS,i)+sulfur(TEX,SPEX,ChS,i))/&

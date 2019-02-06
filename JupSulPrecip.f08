@@ -99,6 +99,7 @@ parameter(nSPBins=2000,SPBinSize=1.0)
 real*8 dEsp,SIMxsTotSP,dEold
 integer(kind=int64),dimension(nSPBins) :: nSPions
 real*8,dimension(nSPBins) :: SPBins,SPvsEng,SIMxsTotvsEng,dEvsEng,dNvsEng
+real*8,dimension(nTargProc,1+nProjProc,nSPBins) :: dEvsEngPID,ionsPID
 !MASS
 real*8 mass !Atomic mass of sulfur (32.065)
 parameter(mass=32.065)
@@ -107,10 +108,12 @@ integer trial,excite,elect,disso,PID(2),nIons
 integer numSim,dpt,maxDpt
 
 integer(kind=int64),dimension(nTargProc,1+nProjProc) :: collisions !Counter
+real*8,dimension(nTargProc,1+nProjProc) :: dEcollisions !Counter
 integer(kind=int64),dimension(nTargProc,1+nProjProc,nChS,atmosLen) :: Sulfur
 real*8 incB,kappa,pangle
 real*8,dimension(nChS,nInterpEnergies) :: SIMxs_Total !SigTot for dN calculation
 real*8,dimension(1+nProjProc,nChS,nInterpEnergies) :: SIMxs_Totaltmp
+real*8,dimension(nTargProc,nChS,nInterpEnergies) :: SIMxs_Totaltarg
 real*8,dimension(nTargProc,1+nProjProc,nChS,nInterpEnergies) :: SIMxs !All SIMxs
 !* SIMxs has an additonal projectile process which is no projectile process
 !* i.e. SI, SI+SS, SI+DS, SI+SPEX, SI+DPEX (respectively)
@@ -149,6 +152,9 @@ real,allocatable :: angle(:)
 integer nOutputFiles !Number of output files
 parameter(nOutputFiles=10)
 character(len=100) filename,files(nOutputFiles) !Output file names
+
+
+real*8,dimension(nChS,nEnergiesNorm,nTargProc) :: NSIMxs !NSIM cross-sectionss
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
 data IonEnergyNorm/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
@@ -168,7 +174,7 @@ data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
 call system_clock (t1,clock_rateTotal,clock_maxTotal)
 !**************************** Initialize Variables *****************************
 altitude=0.0;totalCD=0.0;totalDens=0.0;H=0.0;altDelta=0.0;SIMxs=0.0
-SIMxs_Total=0.0;SIMxs_Totaltmp=0.0;SulEngBins=0.0;SPBins=0.0
+SIMxs_Total=0.0;SIMxs_Totaltmp=0.0;SulEngBins=0.0;SPBins=0.0;dEvsEngPID=0.0
 !**************************** Create the Atmosphere ****************************
 open(unit=200,file='./Atmosphere/Input/JunoColumnDensity_2km.dat',status='old')
 open(unit=201,file='./Atmosphere/Input/JunoAtmosphere_2km.dat',status='old')
@@ -180,6 +186,35 @@ do i=1,atmosLen
 end do
 close(200) !Close column density file
 close(201) !Close atmosphere file
+
+
+open(unit=101,file='NSIMall1.txt')
+do tProc=1,nTargProc
+  read(101,*) !Skip process line
+  read(101,*) !Skip header
+  do Eng=1,nEnergiesNorm
+    read(101,1230) (NSIMxs(ChS,Eng,tProc),ChS=1,nChS)
+  end do
+  if(tProc.eq.4)then !Skip SS and DS
+    do i=1,2
+      read(101,*)
+      read(101,*)
+      do Eng=1,nEnergiesNorm
+        read(101,*)
+      end do
+    end do
+  end if
+end do
+close(101)
+open(unit=205,file='./NSIMXS_total.dat')
+write(205,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
+&S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
+&     S^13+     S^14+     S^15+     S^16+'
+do i=1,nEnergiesNorm
+  write(205,20400) i,(sum(NSIMxs(ChS,i,:)),ChS=1,nChS)
+end do
+1230 format(7x,17(2x,ES8.2E2))
+close(205)
 !*************************** Get SIM cross-sections ****************************
 open(unit=203,file='./SIMXSInterp/SIMXSInterpAll.txt',status='old')
 do tProc=1,nTargProc
@@ -193,15 +228,23 @@ do tProc=1,nTargProc
   end do
 end do
 20300 format(F7.2,17(1x,ES9.3E2))
-! SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
-! SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
-open(unit=204,file='./SIMXSInterp_TotalOG.dat',status='old')
-read(204,*)
-do Eng=1,nInterpEnergies
-  read(204,20400) intdum,(SIMxs_Total(ChS,Eng),ChS=1,nChS)
+! open(unit=204,file='./SIMXSInterp_TotalOG.dat',status='old')
+! read(204,*)
+! do Eng=1,nInterpEnergies
+!   read(204,20400) intdum,(SIMxs_Total(ChS,Eng),ChS=1,nChS)
+! end do
+SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
+! SIMxs_Totaltarg=sum(SIMxs,dim=2) !Total cross-section for target processes
+SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
+open(unit=204,file='./SIMXS_Total.dat')
+write(204,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
+&S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
+&     S^13+     S^14+     S^15+     S^16+'
+do i=1,nInterpEnergies
+  write(204,20400) i,(SIMxs_Total(TEX,ChS,i),ChS=1,nChS)
 end do
-
 20400 format(I7,17(2x,ES8.2E2))
+close(204)
 !**************************** Various Bin Creation *****************************
 ! !2-Stream energy bins:
 ! do i=1,nE2strBins
@@ -250,14 +293,17 @@ elseif(EnergySwitch.eq.2)then !JEDI interpolated energy bins
   allocate(IonEnergy(nEnergies))
   IonEnergy=IonEnergyJuno
 end if
+! write(*,'(37(F7.3,","))') (IonEnergyJuno(i)/2.0,i=1,37)
+! stop
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
+
 nIons=100 !Number of ions that are precipitating
 trial=5 !The seed for the RNG
 do run=7,7!,nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
-  energy=int(IonEnergy(run))
+  energy=int(IonEnergy(run))!+15
   write(*,*) "Number of ions:         ",nIons
   write(*,*) "Initial energy:         ",energy,'keV/u'
   write(*,*) "Trial number (RNG Seed):",trial
@@ -269,7 +315,7 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
   allocate(angle(nIons)) !Want the same number of angles as ions
   call ranlux(angle,nIons) !Calculate all the angles to be used
 !********************* Reset Counters For New Ion Energies *********************
-  Hp =0;totalElect=0
+  Hp =0;totalElect=0;dEcollisions=0.0
   H2p=0;Sulfur    =0;electFwd  =0;electBwd  =0;maxDpt   =0
   H2Ex  =0;collisions=0;SulVsEng  =0
   SPvsEng=0.0;SIMxsTotvsEng=0.0;dEvsEng=0.0;dNvsEng=0.0;nSPions=0
@@ -277,7 +323,8 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
   ! pH2p=0.0;totO      =0;dNvsEng =0.0;oxygenCX=0.0;prode2stF  =0.0;prode2stB=0.0
   !SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SIMxsTotvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
-  write(*,*) 'Starting Ion Precipitiaton: ', energy,'keV/u' !Double check energy
+  write(*,*) 'Starting Ion Precipitation: ', energy,'keV/u' !Double check energy
+  ! write(*,*) TargColl2(n1),'+',ProjColl2(n2)
   do ion=1,nIons !Each ion starts here
     !*****************************
     !Initial Conditions:
@@ -286,7 +333,7 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
     kappa =0.0         !Used to account for pitch angle
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
-    E=IonEnergy(run)   !Start with initial ion energy
+    E=energy   !Start with initial ion energy
     ChS_init=2         !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
@@ -438,6 +485,7 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
       if(dN.lt.0.0)then !Change in column density should never be less than 0
         write(206,10001) E,dEsp,dE,dN,dEold,PID(1),PID(2),ChS_old
       end if
+      dEcollisions(PID(1),PID(2))=dEcollisions(PID(1),PID(2))+dE
 !********************** Sulfur Charge State Distribution ***********************
       do j=1,nSulEngBins
         if(E.le.SulEngBins(j))then
@@ -451,17 +499,16 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
           SPvsEng(j)=SPvsEng(j)+dEsp !Stopping power vs energy
           SIMxsTotvsEng(j)=SIMxsTotvsEng(j)+SIMxsTotSP !Total cross-section vs energy
           dEvsEng(j)=dEvsEng(j)+dEold !Change in energy vs energy
+          dEvsEngPID(PID(1),PID(2),j)=dEvsEngPID(PID(1),PID(2),j)+dEold
+          ionsPID(PID(1),PID(2),j)=ionsPID(PID(1),PID(2),j)+1
           dNvsEng(j)=dNvsEng(j)+dN !Change in column density vs energy
-          ! ProcessdE(j,processC(process),tempQold)=&
-          !   ProcessdE(j,processC(process),tempQold)+dEold
           nSPions(j)=nSPions(j)+1 !Number of ions in each energy bin
-          ! pnSPions(j,processC(process),tempQold)=&
-          !   pnSPions(j,processC(process),tempQold)+1
           goto 4000
         end if
       end do
 4000 continue
       E=E-dE
+      ChS=ChS_init
       ChS_old=ChS !Assign newly acquired charge state to old variable
       if(E.lt.1.0) goto 5000 !Stop once the energy is less than 1 keV/u
       if(i.eq.numSim)then
@@ -472,6 +519,7 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
     end do !End of i=1,numSim loop (E < 1 keV/u)
 5000 continue
   end do !End of ion=1,nIons loop
+  ! energy=210
 !******************************** Output Header ********************************
   write(*,*) '--------------------------NEW RUN---------------------------'
   write(*,*) 'Number of ions: ', nIons
@@ -538,7 +586,7 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
   !* Altitude integrated photon production
   write(106,F06) altDelta(1),& !CX - TI, SC, SC+SPEX
     (real(sum(sulfur(TI,noPP,ChS,:))+sum(sulfur(SC,noPP,ChS,:))+&
-    sum(sulfur(SC,SPEX,ChS,:)))/norm,ChS=1,nChS)
+    sum(sulfur(SC,SS,ChS,:)))/norm,ChS=1,nChS)
   write(107,F06) altDelta(1),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
     (real(sum(sulfur(SI,SPEX,ChS,:))+sum(sulfur(DI,SPEX,ChS,:))+&
     sum(sulfur(TEX,SPEX,ChS,:)))/norm,ChS=1,nChS)
@@ -549,7 +597,7 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
   end do
   do i=1,atmosLen
     write(106,F06) altitude(i),& !CX - TI, SC, SC+SPEX
-     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SPEX,ChS,i))/&
+     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SS,ChS,i))/&
      norm,ChS=1,nChS)
     write(107,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
      (real(sulfur(SI,SPEX,ChS,i)+sulfur(DI,SPEX,ChS,i)+sulfur(TEX,SPEX,ChS,i))/&
@@ -557,7 +605,7 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
   end do
 !*** Stopping power
   write(108,H10) !Stopping power header
-  do i=1,nSPBins !Loop through ever stopping power bin
+  do i=2,nSPBins !Loop through ever stopping power bin
     write(108,F07) SPBins(i)-(SPBinSize/2.0),&
       SPvsEng(i)/real(nSPions(i)**2),&
       SIMxsTotvsEng(i)/real(nSPions(i)),&
@@ -575,6 +623,16 @@ end do
   do i=1,nOutputFiles
     close(100+i)
   end do
+  ! open(unit=300,file='./Output/210/dEcollisions.dat')
+  !
+  ! write(300,F03) (ProjColl(i),i=1,nProjProc) !Collisions header
+  ! do i=1,nTargProc !Total number of each type of collision
+  !   write(300,*) TargColl(i),(dEcollisions(i,j)/collisions(i,j),j=1,5),&
+  !     sum(dEcollisions(i,:))/sum(collisions(i,:))
+  ! end do
+  ! write(300,F4) !'--'
+  ! write(300,*) 'Sum ',(sum(dEcollisions(:,i)),i=1,nProjProc+1),sum(dEcollisions)
+  ! close(300)
 
   call system_clock(t4,clock_rate,clock_max) !Elapsed time for a single energy
   hrs=int(real(t4-t3)/clock_rate/3600.0)
@@ -583,7 +641,15 @@ end do
   ! write(*,*) 'Individual run elapsed real time = ',hrs,':',min,':',sec
   deallocate(angle) !Angle variable is reallocated for each energy
 end do !run=1,nEnergies
-
+! open(unit=301,file='./Output/210/dEPID.dat')
+! write(301,3002)((TargColl2(i),'+',ProjColl2(j),j=1,1+nProjProc),i=1,nTargProc)
+! do i=186,215
+!   write(301,3001) SPBins(i)-(SPBinSize/2.0),&
+!     ((dEvsEngPID(j,k,i)/ionsPID(j,k,i),k=1,1+nProjProc),j=1,nTargProc)
+! end do
+! close(301)
+! 3001 format(1x,F8.2,6x,35(F8.2,2x))
+! 3002 format(15x,35(A4,A1,A4,1x))
 
 call system_clock (t2,clock_rateTotal,clock_maxTotal) !Total elapsed time
 hrs=int(real(t2-t1)/clock_rateTotal/3600.0)
