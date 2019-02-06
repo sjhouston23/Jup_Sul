@@ -43,7 +43,7 @@ real*8,dimension(nSPBins) :: dEvsEngComb,dNvsEngComb,SIMxsTotxdEvsEngComb
 character(len=100) filename,files(nOutputFiles) !Output file names
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
-data IonEnergyNorm/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
+data IonEnergyNorm/300.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 !* Initial ion enegy input from interpoalted JEDI bins:
 data IonEnergyJuno/5.312,6.062,6.893,7.759,8.714,9.766,11.140,12.271,13.518,&
      14.892,16.660,18.638,20.851,23.326,24.817,26.403,28.090,29.885,31.892,&
@@ -68,16 +68,20 @@ end if
 !******************************** Main Program *********************************
 write(*,*) "What energy [kev] for Elapsed_Times.dat file?"
 read(*,*) energy !Input the initial ion energy
-write(filename,'("../scratch/Jup_Sul/Output/",I0,"/Elapsed_Times.dat")')&
-  energy
+!write(filename,'("../scratch/Jup_Sul/Output/",I0,"/Elapsed_Times.dat")')&
+!  energy
+write(filename,'("../scratch/Jup_Sul/Output/Trials.dat")')
 open(unit=100,file=filename,status='old')
+do i=1,200
+  read(100,*)
+end do
 do i=1,MaxnTrials
   read(100,*,end=1000) trial(i)
   nTrials=nTrials+1
 end do
 1000 continue
 close(100)
-do run=1,nEnergies
+do run=1,1!nEnergies-1,2,-1!nEnergies
   energy=nint(IonEnergy(run))
   write(*,*) 'Reading in and combining files...'
   write(*,*) 'Number of files: ',nTrials,'At an energy of: ',energy,'keV/u.'

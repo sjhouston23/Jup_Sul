@@ -47,7 +47,7 @@ implicit none
 
 !**************************** Variable Declaration *****************************
 !* Do-loop variables:
-integer i,j,k,l,run,ion,intdum
+integer i,j,k,l,run,ion
 
 !* Computational time variables:
 integer t1,t2,clock_maxTotal,clock_rateTotal !Used to calculate comp. time
@@ -152,7 +152,7 @@ parameter(nOutputFiles=10)
 character(len=100) filename,files(nOutputFiles) !Output file names
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
-data IonEnergyNorm/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
+data IonEnergyNorm/300.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 ! data IonEnergy/10.625,15.017,20.225,29.783,46.653,59.770,77.522,120.647,&
 !                218.125,456.250/ !Juno energy bins from JEDI
 !* Initial ion enegy input from interpoalted JEDI bins:
@@ -182,7 +182,7 @@ end do
 close(200) !Close column density file
 close(201) !Close atmosphere file
 !*************************** Get SIM cross-sections ****************************
-open(unit=203,file='./SIMXSInterp/SIMXSInterpAll.txt',status='old')
+open(unit=203,file='./SIMXSInterp/SIMXSInterpAll-SP.txt',status='old')
 do tProc=1,nTargProc
   do pProc=1,nProjProc+1
     do i=1,2
@@ -194,14 +194,8 @@ do tProc=1,nTargProc
   end do
 end do
 20300 format(F7.2,17(1x,ES9.3E2))
-! SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
-! SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
-open(unit=204,file='./SIMXSInterp_TotalOG.dat',status='old')
-read(204,*)
-do Eng=1,nInterpEnergies
-  read(204,20400) intdum,(SIMxs_Total(ChS,Eng),ChS=1,nChS)
-end do
-20400 format(I7,17(2x,ES8.2E2))
+SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
+SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
 !**************************** Various Bin Creation *****************************
 ! !2-Stream energy bins:
 ! do i=1,nE2strBins
@@ -256,7 +250,7 @@ end if
 nIons=100 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
-do run=nEnergies,1,-1 !Loop through different initial ion energies
+do run=1,1!nEnergies,1,-1 !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=nint(IonEnergy(run))
   write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Seeds.dat')") energy
@@ -296,11 +290,7 @@ do run=nEnergies,1,-1 !Loop through different initial ion energies
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
     E=IonEnergy(run)   !Start with initial ion energy
-<<<<<<< HEAD
-    ChS_init=nChs         !1 is an initial charge state of 0, 2 is +1
-=======
-    ChS_init=nChS         !1 is an initial charge state of 0, 2 is +1
->>>>>>> 0ded3014e9467e98ff460aec338b6b712fcd1c7a
+    ChS_init=2         !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
