@@ -82,7 +82,7 @@ integer Eng,energy,nEnergiesNorm,nEnergiesJuno !Number of inital ion energies
 integer nEnergies,EnergySwitch !Used to decide which set of energy bins
 integer nInterpEnergies !Number of interpolated ion energies
 real*8 E,dE
-parameter(nEnergiesNorm=23,nEnergiesJuno=34,nInterpEnergies=2000)
+parameter(nEnergiesNorm=22,nEnergiesJuno=34,nInterpEnergies=2000)
 real*8,dimension(nEnergiesNorm) :: IonEnergyNorm !Initial ion energies normally
 real*8,dimension(nEnergiesJuno) :: IonEnergyJuno !Initial ion energies for Juno
 real*8,allocatable,dimension(:) :: IonEnergy !Initial ion energies once decided
