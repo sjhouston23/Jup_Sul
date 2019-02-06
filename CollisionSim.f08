@@ -93,7 +93,7 @@ do tProc=1,nTargProc !Loop through every target process
     Prob(tProc,pProc)=SIMxs(tProc,pProc,ChS,E)/SIMxs_Total(ChS,E)
   end do !End loop through every projectile process plus 1
 end do !End loop through every target process
-if(sum(Prob).ge.1.001.or.sum(Prob).le.0.9999)then !Warning if probability is bad
+if(sum(Prob).ge.1.00001.or.sum(Prob).le.0.9999)then !Warning if probability is bad
   write(206,*) "CollisionSim.f08: WARNING: Normalized collision probability is &
              &not close enough to 1. The value is: ", sum(Prob)
   write(206,*) "tempQ: ", ChS, "Energy: ", E
