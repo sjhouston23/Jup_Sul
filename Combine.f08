@@ -226,9 +226,9 @@ do i=1,2 !Loop through CX and DE headers
 end do
 do i=1,atmosLen
   write(206,F06) altitude(i),& !CX - TI, SC, SC+SPEX
-   (PhotonsCXComb(j,i)/norm,ChS=1,nChS)
+   (PhotonsCXComb(ChS,i)/norm,ChS=1,nChS)
   write(207,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
-   (PhotonsDEComb(j,i)/norm,ChS=1,nChS)
+   (PhotonsDEComb(ChS,i)/norm,ChS=1,nChS)
 end do
 !*** Stopping power
 write(208,H10) !Stopping power header

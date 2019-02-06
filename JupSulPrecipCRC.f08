@@ -82,7 +82,7 @@ integer Eng,energy,nEnergiesNorm,nEnergiesJuno !Number of inital ion energies
 integer nEnergies,EnergySwitch !Used to decide which set of energy bins
 integer nInterpEnergies !Number of interpolated ion energies
 real*8 E,dE
-parameter(nEnergiesNorm=9,nEnergiesJuno=37,nInterpEnergies=2000)
+parameter(nEnergiesNorm=9,nEnergiesJuno=34,nInterpEnergies=2000)
 real*8,dimension(nEnergiesNorm) :: IonEnergyNorm !Initial ion energies normally
 real*8,dimension(nEnergiesJuno) :: IonEnergyJuno !Initial ion energies for Juno
 real*8,allocatable,dimension(:) :: IonEnergy !Initial ion energies once decided
@@ -152,14 +152,14 @@ parameter(nOutputFiles=10)
 character(len=100) filename,files(nOutputFiles) !Output file names
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
-data IonEnergyNorm/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
+data IonEnergyNorm/300.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 ! data IonEnergy/10.625,15.017,20.225,29.783,46.653,59.770,77.522,120.647,&
 !                218.125,456.250/ !Juno energy bins from JEDI
 !* Initial ion enegy input from interpoalted JEDI bins:
-data IonEnergyJuno/10.625,11.619,12.656,13.786,15.017,16.177,17.427,18.774,&
-     20.225,22.280,24.543,27.036,29.783,33.319,37.276,41.702,46.653,49.634,&
-     52.806,56.180,59.770,63.785,68.070,72.642,77.522,86.586,96.710,108.018,&
-     120.647,139.90,162.223,188.108,218.125,262.319,315.467,379.384,456.250/
+data IonEnergyJuno/5.312,6.062,6.893,7.759,8.714,9.766,11.140,12.271,13.518,&
+     14.892,16.660,18.638,20.851,23.326,24.817,26.403,28.090,29.885,31.892,&
+     34.035,36.321,38.761,43.293,48.355,54.009,60.324,69.950,81.112,94.054,&
+     109.062,131.160,157.734,189.692,228.125/ !Interpolated energies[KeV/u u=32]
 data engBins/nSulEngBins*SulEngBinSize/ !Used for sulfur binning
 data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
      'Collisions','Photons_CX','Photons_DE','Stopping_Power','2Str_Elect_Fwd',&
@@ -182,7 +182,7 @@ end do
 close(200) !Close column density file
 close(201) !Close atmosphere file
 !*************************** Get SIM cross-sections ****************************
-open(unit=203,file='./SIMXSInterp/SIMXSInterpAll.txt',status='old')
+open(unit=203,file='./SIMXSInterp/SIMXSInterpAll-SP.txt',status='old')
 do tProc=1,nTargProc
   do pProc=1,nProjProc+1
     do i=1,2
@@ -256,7 +256,7 @@ end if
 nIons=100 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
-do run=7,7!nEnergies,1,-1 !Loop through different initial ion energies
+do run=1,1!nEnergies,1,-1 !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=nint(IonEnergy(run))
   write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Seeds.dat')") energy
@@ -296,7 +296,7 @@ do run=7,7!nEnergies,1,-1 !Loop through different initial ion energies
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
     E=IonEnergy(run)   !Start with initial ion energy
-    ChS_init=3         !1 is an initial charge state of 0, 2 is +1
+    ChS_init=2         !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
@@ -548,7 +548,7 @@ do run=7,7!nEnergies,1,-1 !Loop through different initial ion energies
   !* Altitude integrated photon production
   write(106,F06) altDelta(1),& !CX - TI, SC, SC+SPEX
     (real(sum(sulfur(TI,noPP,ChS,:))+sum(sulfur(SC,noPP,ChS,:))+&
-    sum(sulfur(SC,SPEX,ChS,:)))/norm,ChS=1,nChS)
+    sum(sulfur(SC,SS,ChS,:)))/norm,ChS=1,nChS)
   write(107,F06) altDelta(1),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
     (real(sum(sulfur(SI,SPEX,ChS,:))+sum(sulfur(DI,SPEX,ChS,:))+&
     sum(sulfur(TEX,SPEX,ChS,:)))/norm,ChS=1,nChS)
@@ -559,7 +559,7 @@ do run=7,7!nEnergies,1,-1 !Loop through different initial ion energies
   end do
   do i=1,atmosLen
     write(106,F06) altitude(i),& !CX - TI, SC, SC+SPEX
-     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SPEX,ChS,i))/&
+     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SS,ChS,i))/&
      norm,ChS=1,nChS)
     write(107,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
      (real(sulfur(SI,SPEX,ChS,i)+sulfur(DI,SPEX,ChS,i)+sulfur(TEX,SPEX,ChS,i))/&

@@ -1,0 +1,25 @@
+[00]000391<?xml version="1.0" encoding="UTF-8"?>
+<stream>
+    <properties CONTEXT_0="O, O+S Time=2017-07-11T02:30:30.000Z"
+        DEPEND_0="O, O+S Energy[10] (keV)" FILL_VALUE="-1.0E31"
+        LABEL="O, O+S!CIntensity (c/s/ster/cm^2/keV)"
+        NAME="O, O+S Intensity"
+        TITLE="JEDI-090 Non Proton TOFxE Rates O JEDI090_ION_T0 ...!CEnergy Spectrogram" UNITS="c/s/ster/cm^2/keV"/>
+</stream>
+
+[01]000145<?xml version="1.0" encoding="UTF-8"?>
+<packet>
+    <x type="ascii14" units="keV"/>
+    <y type="ascii14" units="c/s/ster/cm^2/keV"/>
+</packet>
+
+:01: +1.706600E02  +5.534422E02
+:01: +2.402650E02  +5.243677E02
+:01: +3.236000E02  +3.559138E02
+:01: +4.765250E02  +1.510744E02
+:01: +7.464550E02  +8.193797E01
+:01: +9.563150E02  +4.063627E01
+:01: +1.240355E03  +1.360134E01
+:01: +1.930355E03  +6.547549E00
+:01: +3.490000E03  +1.691023E00
+:01: +7.300000E03 +2.036040E-01

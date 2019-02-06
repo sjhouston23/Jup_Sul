@@ -47,7 +47,7 @@ implicit none
 
 !**************************** Variable Declaration *****************************
 !* Do-loop variables:
-integer i,j,k,l,run,ion,n1,n2,intdum
+integer i,j,k,l,run,ion,intdum
 
 !* Computational time variables:
 integer t1,t2,clock_maxTotal,clock_rateTotal !Used to calculate comp. time
@@ -245,7 +245,6 @@ do i=1,nInterpEnergies
 end do
 20400 format(I7,17(2x,ES8.2E2))
 close(204)
-stop
 !**************************** Various Bin Creation *****************************
 ! !2-Stream energy bins:
 ! do i=1,nE2strBins
@@ -284,7 +283,7 @@ end do
 !* Normal:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-EnergySwitch=1!1 for normal energy bins, 2 for Juno energy bins
+EnergySwitch=1 !1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
   nEnergies=nEnergiesNorm
   allocate(IonEnergy(nEnergies))
@@ -299,14 +298,10 @@ end if
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-nIons=1!200!0 !Number of ions that are precipitating
-trial=1 !The seed for the RNG
-do run=9,9!,nEnergies !Loop through different initial ion energies
-! do n1=1,nTargProc
-! do n2=1,nProjProc+1
-!   PID(1)=n1
-!   PID(2)=n2
-!   trial=PID(1)*10+PID(2)
+
+nIons=100 !Number of ions that are precipitating
+trial=5 !The seed for the RNG
+do run=7,7!,nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=int(IonEnergy(run))!+15
   write(*,*) "Number of ions:         ",nIons
@@ -339,7 +334,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
     E=energy   !Start with initial ion energy
-    ChS_init=8         !1 is an initial charge state of 0, 2 is +1
+    ChS_init=2         !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
@@ -361,9 +356,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
       dN=0.0;dZ=0.0;dE=0.0 !Change in column density, altitude, energy
       dEsp=0.0;SIMxsTotSP=0.0;dEold=0.0 !Stopping power variables
       !*****************************
-      ! PID(1)=TEX;PID(2)=SPEX
       call CollisionSim(nint(E),SIMxs,SIMxs_Total,ChS,excite,elect,disso,PID)
-      ! PID(1)=DC;PID(2)=noPP;ChS=ChS;excite=2;elect=0;disso=2
       collisions(PID(1),PID(2))=collisions(PID(1),PID(2))+1 !Count collisions
 1000 continue
       l=l+1
@@ -509,11 +502,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
           dEvsEngPID(PID(1),PID(2),j)=dEvsEngPID(PID(1),PID(2),j)+dEold
           ionsPID(PID(1),PID(2),j)=ionsPID(PID(1),PID(2),j)+1
           dNvsEng(j)=dNvsEng(j)+dN !Change in column density vs energy
-          ! ProcessdE(j,processC(process),tempQold)=&
-          !   ProcessdE(j,processC(process),tempQold)+dEold
           nSPions(j)=nSPions(j)+1 !Number of ions in each energy bin
-          ! pnSPions(j,processC(process),tempQold)=&
-          !   pnSPions(j,processC(process),tempQold)+1
           goto 4000
         end if
       end do
@@ -597,7 +586,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
   !* Altitude integrated photon production
   write(106,F06) altDelta(1),& !CX - TI, SC, SC+SPEX
     (real(sum(sulfur(TI,noPP,ChS,:))+sum(sulfur(SC,noPP,ChS,:))+&
-    sum(sulfur(SC,SPEX,ChS,:)))/norm,ChS=1,nChS)
+    sum(sulfur(SC,SS,ChS,:)))/norm,ChS=1,nChS)
   write(107,F06) altDelta(1),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
     (real(sum(sulfur(SI,SPEX,ChS,:))+sum(sulfur(DI,SPEX,ChS,:))+&
     sum(sulfur(TEX,SPEX,ChS,:)))/norm,ChS=1,nChS)
@@ -608,7 +597,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
   end do
   do i=1,atmosLen
     write(106,F06) altitude(i),& !CX - TI, SC, SC+SPEX
-     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SPEX,ChS,i))/&
+     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SS,ChS,i))/&
      norm,ChS=1,nChS)
     write(107,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
      (real(sulfur(SI,SPEX,ChS,i)+sulfur(DI,SPEX,ChS,i)+sulfur(TEX,SPEX,ChS,i))/&
@@ -651,8 +640,6 @@ end do
   sec=mod(real(t4-t3)/clock_rate,60.0)
   ! write(*,*) 'Individual run elapsed real time = ',hrs,':',min,':',sec
   deallocate(angle) !Angle variable is reallocated for each energy
-! end do !pProc
-! end do !tProc
 end do !run=1,nEnergies
 ! open(unit=301,file='./Output/210/dEPID.dat')
 ! write(301,3002)((TargColl2(i),'+',ProjColl2(j),j=1,1+nProjProc),i=1,nTargProc)

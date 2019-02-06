@@ -24,6 +24,7 @@ Plotting Stuff
 SIMXS
 SIMXS*
 NSIMXS*
-fort*
 XS*
 SIMXSInterp/*.dat
+NSIM*.txt
+fort*

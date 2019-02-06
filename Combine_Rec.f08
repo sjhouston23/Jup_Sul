@@ -14,20 +14,22 @@ implicit real*8(a-h,o-z)
 !**************************** Variable Declaration *****************************
 integer energy,atmosLen,ChS,err,start,run
 
-integer pProc,nProjProc !Number of projectile processes
-integer tProc,nTargProc !Number of target processes
+integer nProjProc !Number of projectile processes
+integer nTargProc !Number of target processes
 parameter(nProjProc=4,nTargProc=7)
 
 parameter(nChS=17,atmosLen=1544)
 parameter(nOutputFiles=10,MaxnTrials=1000,MaxnLines=100000)
 parameter(nSulEngBins=2000,nSPBins=2000)
-parameter(nEnergiesJuno=37)
+parameter(nEnergiesNorm=9,nEnergiesJuno=34)
 
 integer trial(MaxnTrials),nLines(nOutputFiles) !Number of trials/lines in a file
 integer(kind=int64),dimension(nTargProc,1+nProjProc)::collisions,collisionsComb
 integer(kind=int64),dimension(nSPBins) :: nSPions,nSPionsComb
 
+real*8,allocatable,dimension(:) :: IonEnergy !Initial ion energies once decided
 real*8,dimension(nEnergiesJuno) :: IonEnergyJuno !Initial ion energies for Juno
+real*8,dimension(nEnergiesNorm) :: IonEnergyNorm !Initial ion energies normally
 real*8,dimension(nSulEngBins) :: SulEngBins
 real*8,dimension(nChS,nSulEngBins) :: SulVsEng,SulVsEngComb
 real*8,dimension(atmosLen) :: Hp,H2p,H2Ex,HpComb,H2pComb,H2ExComb,altitude
@@ -39,32 +41,48 @@ real*8,dimension(nSPBins) :: SPvsEngComb,SIMxsTotvsEngComb
 real*8,dimension(nSPBins) :: dEvsEngComb,dNvsEngComb,SIMxsTotxdEvsEngComb
 
 character(len=100) filename,files(nOutputFiles) !Output file names
-character(len=1) random_number_file
-character(len=4) dumChar
 !****************************** Data Declaration *******************************
+!* Initial ion enegy input:
+data IonEnergyNorm/300.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
 !* Initial ion enegy input from interpoalted JEDI bins:
-data IonEnergyJuno/10.625,11.619,12.656,13.786,15.017,16.177,17.427,18.774,&
-     20.225,22.280,24.543,27.036,29.783,33.319,37.276,41.702,46.653,49.634,&
-     52.806,56.180,59.770,63.785,68.070,72.642,77.522,86.586,96.710,108.018,&
-     120.647,139.90,162.223,188.108,218.125,262.319,315.467,379.384,456.250/
+data IonEnergyJuno/5.312,6.062,6.893,7.759,8.714,9.766,11.140,12.271,13.518,&
+     14.892,16.660,18.638,20.851,23.326,24.817,26.403,28.090,29.885,31.892,&
+     34.035,36.321,38.761,43.293,48.355,54.009,60.324,69.950,81.112,94.054,&
+     109.062,131.160,157.734,189.692,228.125/ !Interpolated energies[KeV/u u=32]
 data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
      'Collisions','Photons_CX','Photons_DE','Stopping_Power',&
      '2Str_Elect_Fwd','2Str_Elect_Bwd'/
+!********************************* Initialize **********************************
+energy=0;nTrials=0;trial=0;nEnergies=0
+!*******************************************************************************
+EnergySwitch=1!1 for normal energy bins, 2 for Juno energy bins
+if(EnergySwitch.eq.1)then !Normal energy bins
+  nEnergies=nEnergiesNorm
+  allocate(IonEnergy(nEnergies))
+  IonEnergy=IonEnergyNorm
+elseif(EnergySwitch.eq.2)then !JEDI interpolated energy bins
+  nEnergies=nEnergiesJuno
+  allocate(IonEnergy(nEnergies))
+  IonEnergy=IonEnergyJuno
+end if
 !******************************** Main Program *********************************
-energy=0;nTrials=0;trial=0
 write(*,*) "What energy [kev] for Elapsed_Times.dat file?"
 read(*,*) energy !Input the initial ion energy
-write(filename,'("../scratch/Jup_Sul/Output/",I0,"/Elapsed_Times.dat")')&
-  energy
+!write(filename,'("../scratch/Jup_Sul/Output/",I0,"/Elapsed_Times.dat")')&
+!  energy
+write(filename,'("../scratch/Jup_Sul/Output/Trials.dat")')
 open(unit=100,file=filename,status='old')
+do i=1,200
+  read(100,*)
+end do
 do i=1,MaxnTrials
   read(100,*,end=1000) trial(i)
   nTrials=nTrials+1
 end do
 1000 continue
 close(100)
-do run=1,nEnergiesJuno
-  energy=nint(IonEnergyJuno(run))
+do run=1,1!nEnergies-1,2,-1!nEnergies
+  energy=nint(IonEnergy(run))
   write(*,*) 'Reading in and combining files...'
   write(*,*) 'Number of files: ',nTrials,'At an energy of: ',energy,'keV/u.'
 !********************************* Initialize **********************************
@@ -166,7 +184,7 @@ do run=1,nEnergiesJuno
 !********************************** Write Out **********************************
   write(*,*) 'Writing output files...'
   do i=1,nOutputFiles !Open the final combined files
-    write(filename,'("./Output/",I0,"/",A,"-Comb.dat")') &
+    write(filename,'("./OutputNorm/",I0,"/",A,"-Comb.dat")') &
           energy,trim(files(i))
     filename=trim(filename)
     open(unit=200+i,file=filename,status='unknown')
@@ -218,9 +236,9 @@ do run=1,nEnergiesJuno
   end do
   !* Altitude integrated photon production
   write(206,F06) 2.0,& !CX - TI, SC, SC+SPEX
-    (sum(PhotonsCXComb(ChS,:))/norm,ChS=1,nChS)
+    (sum(PhotonsCXComb(ChS,:)*2e5)/norm,ChS=1,nChS)
   write(207,F06) 2.0,& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
-    (sum(PhotonsDEComb(ChS,:))/norm,ChS=1,nChS)
+    (sum(PhotonsDEComb(ChS,:)*2e5)/norm,ChS=1,nChS)
   do i=1,2 !Loop through CX and DE headers
     write(205+i,*) !Blank space
     write(205+i,H07) !Photon production vs. altitude header
@@ -228,9 +246,9 @@ do run=1,nEnergiesJuno
   end do
   do i=1,atmosLen
     write(206,F06) altitude(i),& !CX - TI, SC, SC+SPEX
-     (PhotonsCXComb(j,i)/norm,ChS=1,nChS)
+     (PhotonsCXComb(ChS,i)/norm,ChS=1,nChS)
     write(207,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
-     (PhotonsDEComb(j,i)/norm,ChS=1,nChS)
+     (PhotonsDEComb(ChS,i)/norm,ChS=1,nChS)
   end do
   !*** Stopping power
   write(208,H10) !Stopping power header
