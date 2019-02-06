@@ -71,7 +71,8 @@ end if
 write(*,*) "What energy [kev] for Elapsed_Times.dat file?"
 read(*,*) energy !Input the initial ion energy
 write(filename,'("../scratch/Jup_Sul/Output/",I0,"/Elapsed_Times.dat")')&
-  energy
+ energy
+! write(filename,'("../scratch/Jup_Sul/Output/Trials.dat")')
 open(unit=100,file=filename,status='old')
 do i=1,MaxnTrials
   read(100,*,end=1000) trial(i)
@@ -79,7 +80,7 @@ do i=1,MaxnTrials
 end do
 1000 continue
 close(100)
-do run=1,nEnergies
+do run=nEnergies,1,-1!nEnergies
   energy=nint(IonEnergy(run))
   write(*,*) 'Reading in and combining files...'
   write(*,*) 'Number of files: ',nTrials,'At an energy of: ',energy,'keV/u.'
