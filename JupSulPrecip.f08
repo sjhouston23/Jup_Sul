@@ -236,16 +236,16 @@ end do
 SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
 ! SIMxs_Totaltarg=sum(SIMxs,dim=2) !Total cross-section for target processes
 SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
-! open(unit=204,file='./SIMXS_TotalTEX.dat')
-! write(204,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
-! &S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
-! &     S^13+     S^14+     S^15+     S^16+'
-! do i=1,nInterpEnergies
-!   write(204,20400) i,(SIMxs_Totaltarg(TEX,ChS,i),ChS=1,nChS)
-! end do
+open(unit=204,file='./SIMXS_Total.dat')
+write(204,*) 'Energy     S        S^+       S^++      S^3+      S^4+      &
+&S^5+      S^6+      S^7+      S^8+      S^9+     S^10+     S^11+     S^12+&
+&     S^13+     S^14+     S^15+     S^16+'
+do i=1,nInterpEnergies
+  write(204,20400) i,(SIMxs_Total(TEX,ChS,i),ChS=1,nChS)
+end do
 20400 format(I7,17(2x,ES8.2E2))
-! close(204)
-! stop
+close(204)
+stop
 !**************************** Various Bin Creation *****************************
 ! !2-Stream energy bins:
 ! do i=1,nE2strBins
@@ -348,7 +348,7 @@ do run=9,9!,nEnergies !Loop through different initial ion energies
     !Beginning scale height (H) at 4 or 5 seems to be more accurate than 1-3
     l=0                !Used as index for dN calculation (ranVecA(l))
     excite=0           !CollisionSim outputs
-    ! PID=0              !Process identification numbers
+    PID=0              !Process identification numbers
     !*****************************
     pangle=(2.0*atan(1.0))-acos(angle(ion)) !Pitch angle calculation has a
     !cosine dist. Straight down is pitch angle of 0, random number must be 0
