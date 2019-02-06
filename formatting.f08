@@ -38,7 +38,7 @@ N01="(' Note: These charge states are the resultant charge state from a',&
   ' collision. E.g. the production under S7+ is the number',/,6x,&
   ' of photons produced from S8+ gaining an electron that cascades',&
   ' resulting in S7+. Therefore, only S6+ and above',/,6x,&
-  ' and S7+ are capable of producing X-Rays. The charge states below will',&
+  ' are capable of producing X-Rays. The charge states below will',&
   ' produce in the UV spectrum. S8+ is,',/,6x,&
   ' meaningless here - it is only output as a check that the model is',&
   ' outputting correctly and should always,',/,6x,&
@@ -46,7 +46,7 @@ N01="(' Note: These charge states are the resultant charge state from a',&
 N02="(' Note: The photon production below is from direct excitation of a',&
   ' charge state. If an electron gets excited and then',/,6x,&
   ' relaxes back down to a more energy favorable state, it will emit a',&
-  ' photon. Only S6+ and S7+ and above are capable of',/,6x,&
+  ' photon. Only S6+ and above are capable of',/,6x,&
   ' producing X-Rays. The charge states below will produce in the UV',&
   ' spectrum. S8+ is meaningless here - it is only',/,6x,&
   ' output as a check that the model is outputting correctly and should',&
