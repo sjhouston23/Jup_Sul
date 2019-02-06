@@ -82,7 +82,7 @@ integer Eng,energy,nEnergiesNorm,nEnergiesJuno !Number of inital ion energies
 integer nEnergies,EnergySwitch !Used to decide which set of energy bins
 integer nInterpEnergies !Number of interpolated ion energies
 real*8 E,dE
-parameter(nEnergiesNorm=9,nEnergiesJuno=34,nInterpEnergies=2000)
+parameter(nEnergiesNorm=23,nEnergiesJuno=34,nInterpEnergies=2000)
 real*8,dimension(nEnergiesNorm) :: IonEnergyNorm !Initial ion energies normally
 real*8,dimension(nEnergiesJuno) :: IonEnergyJuno !Initial ion energies for Juno
 real*8,allocatable,dimension(:) :: IonEnergy !Initial ion energies once decided
@@ -152,7 +152,9 @@ parameter(nOutputFiles=10)
 character(len=100) filename,files(nOutputFiles) !Output file names
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
-data IonEnergyNorm/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
+data IonEnergyNorm/10.0,50.0,75.0,100.0,125.0,150.0,175.0,200.0,250.0,&
+     300.0,350.0,400.0,450.0,500.0,600.0,700.0,800.0,900.0,1000.0,1250.0,&
+     1500.0,1750.0,2000.0/
 ! data IonEnergy/10.625,15.017,20.225,29.783,46.653,59.770,77.522,120.647,&
 !                218.125,456.250/ !Juno energy bins from JEDI
 !* Initial ion enegy input from interpoalted JEDI bins:
@@ -194,14 +196,14 @@ do tProc=1,nTargProc
   end do
 end do
 20300 format(F7.2,17(1x,ES9.3E2))
-! SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
-! SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
-open(unit=204,file='./SIMXSInterp_TotalOG.dat',status='old')
-read(204,*)
-do Eng=1,nInterpEnergies
-  read(204,20400) intdum,(SIMxs_Total(ChS,Eng),ChS=1,nChS)
-end do
-20400 format(I7,17(2x,ES8.2E2))
+SIMxs_Totaltmp=sum(SIMxs,dim=1) !Intermediate summing step
+SIMxs_Total=sum(SIMxs_Totaltmp,dim=1) !Sum of cross-sections
+! open(unit=204,file='./SIMXSInterp_TotalOG.dat',status='old')
+! read(204,*)
+! do Eng=1,nInterpEnergies
+!   read(204,20400) intdum,(SIMxs_Total(ChS,Eng),ChS=1,nChS)
+! end do
+! 20400 format(I7,17(2x,ES8.2E2))
 !**************************** Various Bin Creation *****************************
 ! !2-Stream energy bins:
 ! do i=1,nE2strBins
@@ -296,7 +298,7 @@ do run=nEnergies,1,-1 !Loop through different initial ion energies
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
     E=IonEnergy(run)   !Start with initial ion energy
-    ChS_init=nChS         !1 is an initial charge state of 0, 2 is +1
+    ChS_init=2         !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
     dNTot=0.0          !Reset the column density to the top of the atm.
@@ -548,7 +550,7 @@ do run=nEnergies,1,-1 !Loop through different initial ion energies
   !* Altitude integrated photon production
   write(106,F06) altDelta(1),& !CX - TI, SC, SC+SPEX
     (real(sum(sulfur(TI,noPP,ChS,:))+sum(sulfur(SC,noPP,ChS,:))+&
-    sum(sulfur(SC,SPEX,ChS,:)))/norm,ChS=1,nChS)
+    sum(sulfur(SC,SS,ChS,:)))/norm,ChS=1,nChS)
   write(107,F06) altDelta(1),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
     (real(sum(sulfur(SI,SPEX,ChS,:))+sum(sulfur(DI,SPEX,ChS,:))+&
     sum(sulfur(TEX,SPEX,ChS,:)))/norm,ChS=1,nChS)
@@ -559,7 +561,7 @@ do run=nEnergies,1,-1 !Loop through different initial ion energies
   end do
   do i=1,atmosLen
     write(106,F06) altitude(i),& !CX - TI, SC, SC+SPEX
-     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SPEX,ChS,i))/&
+     (real(sulfur(TI,noPP,ChS,i)+sulfur(SC,noPP,ChS,i)+sulfur(SC,SS,ChS,i))/&
      norm,ChS=1,nChS)
     write(107,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
      (real(sulfur(SI,SPEX,ChS,i)+sulfur(DI,SPEX,ChS,i)+sulfur(TEX,SPEX,ChS,i))/&

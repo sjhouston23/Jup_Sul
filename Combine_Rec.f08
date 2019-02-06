@@ -21,7 +21,7 @@ parameter(nProjProc=4,nTargProc=7)
 parameter(nChS=17,atmosLen=1544)
 parameter(nOutputFiles=10,MaxnTrials=1000,MaxnLines=100000)
 parameter(nSulEngBins=2000,nSPBins=2000)
-parameter(nEnergiesNorm=9,nEnergiesJuno=34)
+parameter(nEnergiesNorm=23,nEnergiesJuno=34)
 
 integer trial(MaxnTrials),nLines(nOutputFiles) !Number of trials/lines in a file
 integer(kind=int64),dimension(nTargProc,1+nProjProc)::collisions,collisionsComb
@@ -43,7 +43,9 @@ real*8,dimension(nSPBins) :: dEvsEngComb,dNvsEngComb,SIMxsTotxdEvsEngComb
 character(len=100) filename,files(nOutputFiles) !Output file names
 !****************************** Data Declaration *******************************
 !* Initial ion enegy input:
-data IonEnergyNorm/1.0,10.0,50.0,75.0,100.0,200.0,500.0,1000.0,2000.0/
+data IonEnergyNorm/10.0,50.0,75.0,100.0,125.0,150.0,175.0,200.0,250.0,&
+     300.0,350.0,400.0,450.0,500.0,600.0,700.0,800.0,900.0,1000.0,1250.0,&
+     1500.0,1750.0,2000.0/
 !* Initial ion enegy input from interpoalted JEDI bins:
 data IonEnergyJuno/5.312,6.062,6.893,7.759,8.714,9.766,11.140,12.271,13.518,&
      14.892,16.660,18.638,20.851,23.326,24.817,26.403,28.090,29.885,31.892,&
@@ -55,7 +57,7 @@ data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
 !********************************* Initialize **********************************
 energy=0;nTrials=0;trial=0;nEnergies=0
 !*******************************************************************************
-EnergySwitch=1!1 for normal energy bins, 2 for Juno energy bins
+EnergySwitch=1 !1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
   nEnergies=nEnergiesNorm
   allocate(IonEnergy(nEnergies))
@@ -180,7 +182,7 @@ do run=1,nEnergies
 !********************************** Write Out **********************************
   write(*,*) 'Writing output files...'
   do i=1,nOutputFiles !Open the final combined files
-    write(filename,'("./OutputNorm/",I0,"/",A,"-Comb.dat")') &
+    write(filename,'("./Output/",I0,"/",A,"-Comb.dat")') &
           energy,trim(files(i))
     filename=trim(filename)
     open(unit=200+i,file=filename,status='unknown')
