@@ -21,7 +21,7 @@ parameter(nProjProc=4,nTargProc=7)
 parameter(nChS=17,atmosLen=1544)
 parameter(nOutputFiles=10,MaxnTrials=1000,MaxnLines=100000)
 parameter(nSulEngBins=2000,nSPBins=2000)
-parameter(nEnergiesNorm=22,nEnergiesJuno=34)
+parameter(nEnergiesNorm=23,nEnergiesJuno=34)
 
 integer trial(MaxnTrials),nLines(nOutputFiles) !Number of trials/lines in a file
 integer(kind=int64),dimension(nTargProc,1+nProjProc)::collisions,collisionsComb

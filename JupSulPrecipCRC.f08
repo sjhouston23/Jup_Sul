@@ -82,7 +82,7 @@ integer Eng,energy,nEnergiesNorm,nEnergiesJuno !Number of inital ion energies
 integer nEnergies,EnergySwitch !Used to decide which set of energy bins
 integer nInterpEnergies !Number of interpolated ion energies
 real*8 E,dE
-parameter(nEnergiesNorm=22,nEnergiesJuno=34,nInterpEnergies=2000)
+parameter(nEnergiesNorm=23,nEnergiesJuno=34,nInterpEnergies=2000)
 real*8,dimension(nEnergiesNorm) :: IonEnergyNorm !Initial ion energies normally
 real*8,dimension(nEnergiesJuno) :: IonEnergyJuno !Initial ion energies for Juno
 real*8,allocatable,dimension(:) :: IonEnergy !Initial ion energies once decided
@@ -255,10 +255,10 @@ end if
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-nIons=1 !Number of ions that are precipitating
+nIons=100 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
-do run=nEnergies,nEnergies!1,-1 !Loop through different initial ion energies
+do run=nEnergies,1,-1 !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=nint(IonEnergy(run))
   write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Seeds.dat')") energy
