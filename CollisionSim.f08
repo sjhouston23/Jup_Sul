@@ -82,7 +82,7 @@ real*8,dimension(nTargProc,1+nProjProc) :: Prob
 
 real ranVecB(1) !Number from RNG
 !**************************** Initialize Variables *****************************
-Prob=0.0;excite=0;elect=0;diss=0!;PID=0;sumProb=0.0
+sumProb=0.0;Prob=0.0;excite=0;elect=0;diss=0;PID=0
 !******************************** Main Program *********************************
 !******************** Collision-Type Probability Calculation *******************
 !* Calculate the transition probabilities by taking the collision process XS and

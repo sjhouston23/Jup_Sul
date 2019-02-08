@@ -154,7 +154,7 @@ character(len=100) filename,files(nOutputFiles) !Output file names
 !* Initial ion enegy input:
 data IonEnergyNorm/10.0,50.0,75.0,100.0,125.0,150.0,175.0,200.0,250.0,&
      300.0,350.0,400.0,450.0,500.0,600.0,700.0,800.0,900.0,1000.0,1250.0,&
-     1500.0,2000.0/
+     1500.0,1750.0,2000.0/
 ! data IonEnergy/10.625,15.017,20.225,29.783,46.653,59.770,77.522,120.647,&
 !                218.125,456.250/ !Juno energy bins from JEDI
 !* Initial ion enegy input from interpoalted JEDI bins:
@@ -255,10 +255,10 @@ end if
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-nIons=100 !Number of ions that are precipitating
+nIons=1 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
-do run=nEnergies,1,-1 !Loop through different initial ion energies
+do run=nEnergies,nEnergies!1,-1 !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=nint(IonEnergy(run))
   write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Seeds.dat')") energy
