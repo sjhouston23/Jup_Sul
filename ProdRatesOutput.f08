@@ -25,9 +25,9 @@ character(len=100) filename,files(2)
 data Eion/10,50,75,100,200,300,500,1000,2000/
 !******************************** Main Program *********************************
 do Eng=1,nEnergies
-  write(filename,'("./OutputNorm2/",I0,"/Photons_CX-Comb.dat")') Eion(Eng)
+  write(filename,'("./Output/",I0,"/Photons_CX-Comb.dat")') Eion(Eng)
   open(unit=100,file=trim(filename),status='unknown') !Open X-Ray DE
-  write(filename,'("./OutputNorm2/",I0,"/Photons_DE-Comb.dat")') Eion(Eng)
+  write(filename,'("./Output/",I0,"/Photons_DE-Comb.dat")') Eion(Eng)
   open(unit=101,file=trim(filename),status='unknown') !Open X-Ray CX
   do i=1,13
     read(100,*) !Skip the header
@@ -42,9 +42,9 @@ do Eng=1,nEnergies
   close(101)
 end do
 do ChS=1,nChS
-  write(filename,'("./OutputNorm2/TotalProductions/XRay_CX_",I0,".dat")') ChS-1
+  write(filename,'("./Output/TotalProductions/XRay_CX_",I0,".dat")') ChS-1
   open(unit=100,file=trim(filename),status='unknown') !Open X-Ray DE
-  write(filename,'("./OutputNorm2/TotalProductions/XRay_DE_",I0,".dat")') ChS-1
+  write(filename,'("./Output/TotalProductions/XRay_DE_",I0,".dat")') ChS-1
   open(unit=101,file=trim(filename),status='unknown') !Open X-Ray CX
   write(100,1000) 'ΔAlt [km]', (Eion(Eng),Eng=1,nEnergies) !CX
   write(101,1000) 'ΔAlt [km]', (Eion(Eng),Eng=1,nEnergies) !DE
@@ -61,9 +61,9 @@ do ChS=1,nChS
   close(100)
   close(101)
 end do
-write(filename,'("./OutputNorm2/LaTeX/CX_Prod.dat")')
+write(filename,'("./Output/LaTeX/CX_Prod.dat")')
 open(unit=100,file=trim(filename))
-write(filename,'("./OutputNorm2/LaTeX/DE_Prod.dat")')
+write(filename,'("./Output/LaTeX/DE_Prod.dat")')
 open(unit=101,file=trim(filename))
 write(100,1003)
 write(101,1003)
