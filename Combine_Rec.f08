@@ -22,6 +22,7 @@ parameter(nChS=17,atmosLen=1544)
 parameter(nOutputFiles=10,MaxnTrials=1000,MaxnLines=100000)
 parameter(nSulEngBins=2000,nSPBins=2000)
 parameter(nEnergiesNorm=23,nEnergiesJuno=34)
+parameter(nE2strBins=260) !Number of 2 stream bins
 
 integer trial(MaxnTrials),nLines(nOutputFiles) !Number of trials/lines in a file
 integer(kind=int64),dimension(nTargProc,1+nProjProc)::collisions,collisionsComb
@@ -39,6 +40,8 @@ real*8,dimension(nSPBins) :: SPBins,SPvsEng,SIMxsTotvsEng
 real*8,dimension(nSPBins) :: dEvsEng,dNvsEng,SIMxsTotxdEvsEng
 real*8,dimension(nSPBins) :: SPvsEngComb,SIMxsTotvsEngComb
 real*8,dimension(nSPBins) :: dEvsEngComb,dNvsEngComb,SIMxsTotxdEvsEngComb
+real*8,dimension(atmosLen,nE2strBins) :: electFwd,electBwd
+real*8,dimension(atmosLen,nE2strBins) :: electFwdComb,electBwdComb
 
 character(len=100) filename,files(nOutputFiles) !Output file names
 !****************************** Data Declaration *******************************
@@ -57,7 +60,7 @@ data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
 !********************************* Initialize **********************************
 energy=0;nTrials=0;trial=0;nEnergies=0
 !*******************************************************************************
-EnergySwitch=2 !1 for normal energy bins, 2 for Juno energy bins
+EnergySwitch=1 !1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
   nEnergies=nEnergiesNorm
   allocate(IonEnergy(nEnergies))
@@ -157,8 +160,8 @@ do run=nEnergies,1,-1!nEnergies
     end do
     read(106,*) !Photon_CX has an additional line
     do i=1,atmosLen
-      read(106,F06) altitude(i),(PhotonsCX(j,i),j=1,nChS) !CX - TI, SC, SC+SPEX
-      read(107,F06) altitude(i),(PhotonsDE(j,i),j=1,nChS) !DE - (SI, DI, TEX)+SPEX
+      read(106,F06) altitude(i),(PhotonsCX(j,i),j=1,nChS) !CX-TI, SC, SC+SS
+      read(107,F06) altitude(i),(PhotonsDE(j,i),j=1,nChS) !DE-(SI, DI, TEX)+SPEX
     end do
     PhotonsCXComb=PhotonsCXComb+PhotonsCX
     PhotonsDEComb=PhotonsDEComb+PhotonsDE
@@ -167,8 +170,8 @@ do run=nEnergies,1,-1!nEnergies
       read(108,*) !Stopping power header
     end do
     do i=2,nSPBins
-      read(108,F07) SPBins(i),SPvsEng(i),SIMxsTotvsEng(i),dEvsEng(i),dNvsEng(i),&
-        SIMxsTotxdEvsEng(i),nSPions(i)
+      read(108,F07) SPBins(i),SPvsEng(i),SIMxsTotvsEng(i),dEvsEng(i),&
+        dNvsEng(i),SIMxsTotxdEvsEng(i),nSPions(i)
     end do
     SPvsEngComb=SPvsEngComb+SPvsEng
     SIMxsTotvsEngComb=SIMxsTotvsEngComb+SIMxsTotvsEng
@@ -176,6 +179,13 @@ do run=nEnergies,1,-1!nEnergies
     dNvsEngComb=dNvsEngComb+dNvsEng
     SIMxsTotxdEvsEngComb=SIMxsTotxdEvsEngComb+SIMxsTotxdEvsEng
     nSPionsComb=nSPionsComb+nSPions
+  !*** 2-Stream electrons
+    do j=1,nE2strBins
+      read(109,F2Str) (electFwd(i,j),i=atmosLen,1,-1)
+      read(110,F2Str) (electBwd(i,j),i=atmosLen,1,-1)
+    end do
+    electFwdComb=electFwdComb+electFwd
+    electBwdComb=electBwdComb+electBwd
     do i=1,nOutputFiles !Close all of the files
       close(100+i)
     end do
@@ -259,6 +269,11 @@ do run=nEnergies,1,-1!nEnergies
       dNvsEngComb(i)/norm,&
       (SIMxsTotxdEvsEngComb(i))/norm,&
       nSPionsComb(i)
+  end do
+  !*** 2-Stream electrons
+  do j=1,nE2strBins
+    write(209,F2Str) ((electFwdComb(i,j)/norm),i=atmosLen,1,-1)
+    write(210,F2Str) ((electBwdComb(i,j)/norm),i=atmosLen,1,-1)
   end do
   do i=1,nOutputFiles !Close all of the files
     close(200+i)
