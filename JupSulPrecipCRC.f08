@@ -242,7 +242,7 @@ end do
 !* Normal:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-EnergySwitch=1 !1 for normal energy bins, 2 for Juno energy bins
+EnergySwitch=2 !1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
   nEnergies=nEnergiesNorm
   allocate(IonEnergy(nEnergies))
