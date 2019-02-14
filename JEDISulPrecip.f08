@@ -24,7 +24,7 @@ integer tProc,nTargProc !Number of target processes
 parameter(nProjProc=4,nTargProc=7)
 
 parameter(nChS=17,atmosLen=1544,nEng=34)
-parameter(nOutputFiles=5)!,MaxnTrials=1000,MaxnLines=100000)
+parameter(nOutputFiles=6)!,MaxnTrials=1000,MaxnLines=100000)
 real*8 Eion(nEng) !Ion energies
 ! parameter(nSulEngBins=2000,nSPBins=2000)
 
@@ -65,7 +65,8 @@ data Eion/5.312,6.062,6.893,7.759,8.714,9.766,11.140,12.271,13.518,14.892,&
      16.660,18.638,20.851,23.326,24.817,26.403,28.090,29.885,31.892,34.035,&
      36.321,38.761,43.293,48.355,54.009,60.324,69.950,81.112,94.054,109.062,&
      131.160,157.734,189.692,228.125/ !Interpolated energies in KeV/u (u=32)
-data files/'H+_Prod','H2+_Prod','H2*_Prod','Photons_CX','Photons_DE'/!,&
+data files/'H+_Prod','H2+_Prod','H2*_Prod','Photons_CX','Photons_DE',&
+           'Photons_Total'/!,&
      ! '2Str_Elect_Fwd','2Str_Elect_Bwd'/ !Filenames
 !* Width of JEDI energy bins: (May eventually need to be adjusted)
 !data Jebins/66.0,71.0,105.0,216.0,346.0,251.0,300.0,880.0,2280.0,5340.0/
@@ -86,8 +87,8 @@ PhotonsCX=0.0;PhotonsDE=0.0
 write(*,*) 'Opening sulfur preciptation files for all energies...'
 do run=1,nEng !Loop through each initial ion energy
   energy=nint(Eion(run))
-  do i=1,nOutputFiles !Open all of the files
-    write(filename,'("./Output/Juno/",I0,"/",A,"-Comb.dat")') &
+  do i=1,nOutputFiles-1 !Open all of the files
+    write(filename,'("./Output/",I0,"/",A,"-Comb.dat")') &
           energy,trim(files(i))
     filename=trim(filename)
     open(unit=100+i,file=filename,status='old')
@@ -153,19 +154,23 @@ end do
 !*** Photon production
 write(204,N01) !CX note
 write(205,N02) !DE note
-do i=1,2 !Loop through CX and DE headers
-  write(203+i,*) !Blank space
-  write(203+i,H09) !Initial input header
-  write(203+i,*) !Blank space
+do i=1,3 !Loop through CX and DE headers
+  if(i.le.2)then
+    write(203+i,*) !Blank space
+    write(203+i,H09) !Initial input header
+    write(203+i,*) !Blank space
+  end if
   write(203+i,H05) !Altitude integrated photon production header
   write(203+i,H06) !Charge state header
 end do
 !* Altitude integrated photon production
-write(204,F06) 2.0,& !CX - TI, SC, SC+SPEX
+write(204,F06) 2.0,& !CX - TI, SC, SC+SS
   (sum(JPhotonsCX(ChS,:))*2.0e5,ChS=1,nChS)
 write(205,F06) 2.0,& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
   (sum(JPhotonsDE(ChS,:))*2.0e5,ChS=1,nChS)
-do i=1,2 !Loop through CX and DE headers
+write(206,F06) 2.0,& !CX + DE, Total photon production
+  (sum(JPhotonsCX(ChS,:)+JPhotonsDE(ChS,:))*2.0e5,ChS=1,nChS)
+do i=1,3 !Loop through CX and DE headers
   write(203+i,*) !Blank space
   write(203+i,H07) !Photon production vs. altitude header
   write(203+i,H08) !Charge state header
@@ -175,6 +180,8 @@ do i=1,atmosLen
    (JPhotonsCX(ChS,i),ChS=1,nChS)
   write(205,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
    (JPhotonsDE(ChS,i),ChS=1,nChS)
+  write(206,F06) altitude(i),& !CX + DE, Total photon production
+   ((JPhotonsCX(ChS,i)+JPhotonsDE(ChS,i)),ChS=1,nChS)
 end do
 do i=1,nOutputFiles
   close(200+i)

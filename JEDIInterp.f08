@@ -108,7 +108,7 @@ do i=1,nInterp !Convert to [counts/cm^2/s]
   ! else
   Iflux(i)=Iintensity(i)*2*pi*Iebins(i)
   ! end if
-  write(100,1004)Ienergy(i),Iintensity(i),Iebins(i),Iflux(i)
+  write(*,1004)Ienergy(i),Iintensity(i),Iebins(i),Iflux(i)
 end do
 j=1
 do i=1,34
