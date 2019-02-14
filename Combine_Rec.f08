@@ -57,7 +57,7 @@ data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
 !********************************* Initialize **********************************
 energy=0;nTrials=0;trial=0;nEnergies=0
 !*******************************************************************************
-EnergySwitch=1 !1 for normal energy bins, 2 for Juno energy bins
+EnergySwitch=2 !1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
   nEnergies=nEnergiesNorm
   allocate(IonEnergy(nEnergies))
