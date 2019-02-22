@@ -82,7 +82,7 @@ integer Eng,energy,nEnergiesNorm,nEnergiesJuno !Number of inital ion energies
 integer nEnergies,EnergySwitch !Used to decide which set of energy bins
 integer nInterpEnergies !Number of interpolated ion energies
 real*8 E,dE
-parameter(nEnergiesNorm=23,nEnergiesJuno=34,nInterpEnergies=2000)
+parameter(nEnergiesNorm=23,nEnergiesJuno=36,nInterpEnergies=2000)
 real*8,dimension(nEnergiesNorm) :: IonEnergyNorm !Initial ion energies normally
 real*8,dimension(nEnergiesJuno) :: IonEnergyJuno !Initial ion energies for Juno
 real*8,allocatable,dimension(:) :: IonEnergy !Initial ion energies once decided
@@ -161,7 +161,7 @@ data IonEnergyNorm/10.0,50.0,75.0,100.0,125.0,150.0,175.0,200.0,250.0,&
 data IonEnergyJuno/5.312,6.062,6.893,7.759,8.714,9.766,11.140,12.271,13.518,&
      14.892,16.660,18.638,20.851,23.326,24.817,26.403,28.090,29.885,31.892,&
      34.035,36.321,38.761,43.293,48.355,54.009,60.324,69.950,81.112,94.054,&
-     109.062,131.160,157.734,189.692,228.125/ !Interpolated energies[KeV/u u=32]
+     109.062,131.160,157.734,189.692,228.125,541.563,625/ !Interpolated energies
 data engBins/nSulEngBins*SulEngBinSize/ !Used for sulfur binning
 data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
      'Collisions','Photons_CX','Photons_DE','Stopping_Power','2Str_Elect_Fwd',&
@@ -258,7 +258,7 @@ end if
 nIons=100 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
-do run=nEnergies,1,-1 !Loop through different initial ion energies
+do run=nEnergies,nEnergies-1,-1!1,-1 !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=nint(IonEnergy(run))
   write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Seeds.dat')") energy

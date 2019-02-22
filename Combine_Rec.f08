@@ -21,7 +21,7 @@ parameter(nProjProc=4,nTargProc=7)
 parameter(nChS=17,atmosLen=1544)
 parameter(nOutputFiles=10,MaxnTrials=1000,MaxnLines=100000)
 parameter(nSulEngBins=2000,nSPBins=2000)
-parameter(nEnergiesNorm=23,nEnergiesJuno=34)
+parameter(nEnergiesNorm=23,nEnergiesJuno=36)
 parameter(nE2strBins=260) !Number of 2 stream bins
 
 integer trial(MaxnTrials),nLines(nOutputFiles) !Number of trials/lines in a file
@@ -53,14 +53,14 @@ data IonEnergyNorm/10.0,50.0,75.0,100.0,125.0,150.0,175.0,200.0,250.0,&
 data IonEnergyJuno/5.312,6.062,6.893,7.759,8.714,9.766,11.140,12.271,13.518,&
      14.892,16.660,18.638,20.851,23.326,24.817,26.403,28.090,29.885,31.892,&
      34.035,36.321,38.761,43.293,48.355,54.009,60.324,69.950,81.112,94.054,&
-     109.062,131.160,157.734,189.692,228.125/ !Interpolated energies[KeV/u u=32]
+     109.062,131.160,157.734,189.692,228.125,541.563,625/ !Interpolated energies
 data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
      'Collisions','Photons_CX','Photons_DE','Stopping_Power',&
      '2Str_Elect_Fwd','2Str_Elect_Bwd'/
 !********************************* Initialize **********************************
 energy=0;nTrials=0;trial=0;nEnergies=0
 !*******************************************************************************
-EnergySwitch=1 !1 for normal energy bins, 2 for Juno energy bins
+EnergySwitch=2 !1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
   nEnergies=nEnergiesNorm
   allocate(IonEnergy(nEnergies))
@@ -83,7 +83,7 @@ do i=1,MaxnTrials
 end do
 1000 continue
 close(100)
-do run=nEnergies,1,-1!nEnergies
+do run=nEnergies,nEnergies-1,-1!,1,-1!nEnergies
   energy=nint(IonEnergy(run))
   write(*,*) 'Reading in and combining files...'
   write(*,*) 'Number of files: ',nTrials,'At an energy of: ',energy,'keV/u.'
