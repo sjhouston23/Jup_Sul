@@ -161,7 +161,7 @@ data IonEnergyNorm/10.0,50.0,75.0,100.0,125.0,150.0,175.0,200.0,250.0,&
 data IonEnergyJuno/5.312,6.062,6.893,7.759,8.714,9.766,11.140,12.271,13.518,&
      14.892,16.660,18.638,20.851,23.326,24.817,26.403,28.090,29.885,31.892,&
      34.035,36.321,38.761,43.293,48.355,54.009,60.324,69.950,81.112,94.054,&
-     109.062,131.160,157.734,189.692,228.125,541.563,625/ !Interpolated energies
+     109.062,131.160,157.734,189.692,228.125,541.463,625/ !Interpolated energies
 data engBins/nSulEngBins*SulEngBinSize/ !Used for sulfur binning
 data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
      'Collisions','Photons_CX','Photons_DE','Stopping_Power','2Str_Elect_Fwd',&
