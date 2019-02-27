@@ -579,10 +579,10 @@ do run=nEnergies,nEnergies-1,-1!1,-1 !Loop through different initial ion energie
       nSPions(i)
   end do
 !***************************** Secondary Electrons *****************************
-do j=1,nE2strBins !2-stream electrons, forward and backward
-  write(109,F2str) (real(electFwd(i,j))/norm,i=atmosLen,1,-1)
-  write(110,F2str) (real(electBwd(i,j))/norm,i=atmosLen,1,-1)
-end do
+  do j=1,nE2strBins !2-stream electrons, forward and backward
+    write(109,F2str) (real(electFwd(i,j))/norm,i=atmosLen,1,-1)
+    write(110,F2str) (real(electBwd(i,j))/norm,i=atmosLen,1,-1)
+  end do
 !******************************* Close all files *******************************
   do i=1,nOutputFiles
     close(100+i)
