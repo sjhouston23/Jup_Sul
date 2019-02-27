@@ -23,7 +23,7 @@ integer pProc,nProjProc !Number of projectile processes
 integer tProc,nTargProc !Number of target processes
 parameter(nProjProc=4,nTargProc=7)
 
-parameter(nChS=17,atmosLen=1544,nEng=34)
+parameter(nChS=17,atmosLen=1544,nEng=36)
 parameter(nOutputFiles=6)!,MaxnTrials=1000,MaxnLines=100000)
 real*8 Eion(nEng) !Ion energies
 ! parameter(nSulEngBins=2000,nSPBins=2000)
@@ -64,7 +64,7 @@ character(len=12) time
 data Eion/5.312,6.062,6.893,7.759,8.714,9.766,11.140,12.271,13.518,14.892,&
      16.660,18.638,20.851,23.326,24.817,26.403,28.090,29.885,31.892,34.035,&
      36.321,38.761,43.293,48.355,54.009,60.324,69.950,81.112,94.054,109.062,&
-     131.160,157.734,189.692,228.125/ !Interpolated energies in KeV/u (u=32)
+     131.160,157.734,189.692,228.125,270.78,312.5/ !Interpolated energies
 data files/'H+_Prod','H2+_Prod','H2*_Prod','Photons_CX','Photons_DE',&
            'Photons_Total'/!,&
      ! '2Str_Elect_Fwd','2Str_Elect_Bwd'/ !Filenames
@@ -77,7 +77,8 @@ write(*,*)
 write(*,*) "What is the name of the JEDI ion spectrum file you wish to open?"
 write(*,*) "Don't include the extension in the file name (e.g. if you want to &
  analyze PJ7-1.ds2, type PJ7-1)."
-read(*,*) version
+! read(*,*) version
+version='PJ7_Paper'
 !write(version,'("v1")') !Filename of a JEDI spectrum (.d2s file)
 call JEDIInterpolator(version,Jflux)
 !********************************* Initialize **********************************

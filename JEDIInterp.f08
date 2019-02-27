@@ -13,7 +13,7 @@ implicit real*8(a-h,o-z)
 
 !*******************************************************************************
 character(len=10),intent(in) :: version
-real*8,dimension(37),intent(out) :: Iflux
+real*8,dimension(39),intent(out) :: Iflux
 real*8,dimension(34) :: Iflux_final
 
 parameter(nJebins=10,nSteps=3) !Number of JEDI energy bins
@@ -38,7 +38,7 @@ data Jebins/66.0,71.0,105.0,216.0,346.0,251.0,300.0,880.0,2280.0,5340.0/
 !********************************* Initialize **********************************
 !nInterp includes the JEDI energy data points as well
 nInterp=nJebins+(nJebins-1)*nSteps
-allocate(Ienergy(nInterp),Iintensity(nInterp),Iebins(nInterp))
+allocate(Ienergy(nInterp+2),Iintensity(nInterp+2),Iebins(nInterp+2))
 pi=4.0d0*atan(1.0d0)
 Jenergy=0.0;Jintensity=0.0;Jbins=0.0;Jflux=0.0
 Ienergy=0.0;Iintensity=0.0;Ibins=0.0;Iflux=0.0
@@ -66,10 +66,19 @@ end do
 close(100) !Close JEDI measurement file
 !**************************** Interpolate the data *****************************
 j=0
-do i=1,nInterp !Create new energy points that include the original points
+do i=1,nInterp+2 !Create new energy points that include the original points
+  if(i.eq.nInterp+1)then
+    Ienergy(i)=log(8665.0)
+    goto 5000
+  end if
+  if(i.eq.nInterp+2)then
+    Ienergy(i)=log(10000.0)
+    goto 5000
+  end if
   if(mod(i-1,nSteps+1).eq.0)j=j+1
   Ienergy(i)=log(Jenergy(j))+& !Want a log interpolation
             (log(Jenergy(j+1))-log(Jenergy(j)))*mod(i-1,nSteps+1)/(nSteps+1)
+  5000 continue
 end do
 Ienergy=exp(Ienergy) !Put back into a normal number
 j=0
@@ -80,13 +89,16 @@ do i=1,nInterp !Loglog linearly interpolate the intensities
                 (log(Jenergy(j+1))-log(Jenergy(j)))
   Iintensity(i)=exp(Iintensity(i)) !Put back into a normal number
 end do
+Iintensity(nInterp)=Iintensity(nInterp)
+Iintensity(nInterp+1)=Iintensity(nInterp)*6/9
+Iintensity(nInterp+2)=Iintensity(nInterp)*4/9
 !************************* Find new energy bin widths **************************
 lower_bound=145.0 !Lowest energy detectable by JEDI [keV]
 upper_bound=10000.0 !Highest energy detectable by JEDI [keV]
-do i=1,nInterp !Assume the new energy points are the midpoint of the bins
+do i=1,nInterp+2 !Assume the new energy points are the midpoint of the bins
   if(i.eq.1)then !Need to account for lowest energy value
     Iebins(i)=(Ienergy(i+1)-Ienergy(i))/2.0+(Ienergy(i)-lower_bound)
-  elseif(i.eq.nInterp)then !Need to account for highest energy value
+  elseif(i.eq.nInterp+2)then !Need to account for highest energy value
     Iebins(i)=(upper_bound-Ienergy(i))+(Ienergy(i)-Ienergy(i-1))/2.0
   else
     Iebins(i)=(Ienergy(i+1)-Ienergy(i))/2.0+(Ienergy(i)-Ienergy(i-1))/2.0
@@ -95,9 +107,9 @@ end do
 !************************ Calculate interpolated fluxes ************************
 write(*,*)
 write(*,*) 'Interpolated Values'
-write(100,1003)'Energy Bin:','JEDI Intensity:','Energy Bin Width:',&
+write(*,1003)'Energy Bin:','JEDI Intensity:','Energy Bin Width:',&
              'Normalized Flux:' !Write out general information
-do i=1,nInterp !Convert to [counts/cm^2/s]
+do i=1,nInterp+2 !Convert to [counts/cm^2/s]
 !* The first 3 JEDI energy bins include both sulfur and oxygen. I'm assuming
 !* a 2:1 ratio of oxygen:sulfur (from SO_2). The energy 387 is what I
 !* received in an email from Dennis Haggerty; however, Table 19 from the SSR
@@ -109,6 +121,7 @@ do i=1,nInterp !Convert to [counts/cm^2/s]
   Iflux(i)=Iintensity(i)*2*pi*Iebins(i)
   ! end if
   write(*,1004)Ienergy(i),Iintensity(i),Iebins(i),Iflux(i)
+  write(100,1004)Ienergy(i),Iintensity(i),Iebins(i),Iflux(i)
 end do
 j=1
 do i=1,34
