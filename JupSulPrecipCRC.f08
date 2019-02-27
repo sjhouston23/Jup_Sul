@@ -607,7 +607,7 @@ hrs=int(real(t2-t1)/clock_rateTotal/3600.0)
 min=int(((real(t2-t1)/clock_rateTotal)-hrs*3600)/60)
 sec=mod(real(t2-t1)/clock_rateTotal,60.0)
 write(filename,'("../scratch/Jup_Sul/Output/Log/Full_Run.dat")')
-open(unit=208,file=filename,,access='append',action='write')
+open(unit=208,file=filename,access='append',action='write')
 write(208,*) trial,hrs,':',min,':',sec
 close(208)
 10001 format(F8.2,3(2x,ES10.3E2),2x,F9.2,4(2x,I2))
