@@ -242,7 +242,7 @@ end do
 !* Normal:
 !* 1=1, 2=10, 3=50, 4=75, 5=100, 6=200, 7=500, 8=1000, 9=2000
 !*******************************************************************************
-EnergySwitch=2 !1 for normal energy bins, 2 for Juno energy bins
+EnergySwitch=1 !1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
   nEnergies=nEnergiesNorm
   allocate(IonEnergy(nEnergies))
@@ -258,7 +258,7 @@ end if
 nIons=100 !Number of ions that are precipitating
 call get_command_argument(1,arg)
 read(arg,'(I100)') trial !The seed for the RNG
-do run=nEnergies,nEnergies-1,-1!1,-1 !Loop through different initial ion energies
+do run=nEnergies,1,-1 !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
   energy=nint(IonEnergy(run))
   write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Seeds.dat')") energy
@@ -592,7 +592,12 @@ do run=nEnergies,nEnergies-1,-1!1,-1 !Loop through different initial ion energie
   hrs=int(real(t4-t3)/clock_rate/3600.0)
   min=int(((real(t4-t3)/clock_rate)-hrs*3600)/60)
   sec=mod(real(t4-t3)/clock_rate,60.0)
-  ! write(206,F2) 'Individual run elapsed real time = ',hrs,':',min,':',sec
+  write(206,F2) 'Individual run elapsed real time = ',hrs,':',min,':',sec
+  close(206)
+  write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Elapsed_Times.dat')") energy
+  open(unit=207,file=filename,access='append',action='write')
+  write(207,*) trial,hrs,':',min,':',sec
+  close(207)
   deallocate(angle) !Angle variable is reallocated for each energy
 end do !run=1,nEnergies
 
@@ -601,12 +606,9 @@ call system_clock (t2,clock_rateTotal,clock_maxTotal) !Total elapsed time
 hrs=int(real(t2-t1)/clock_rateTotal/3600.0)
 min=int(((real(t2-t1)/clock_rateTotal)-hrs*3600)/60)
 sec=mod(real(t2-t1)/clock_rateTotal,60.0)
-write(206,F3) !'**'
-write(206,F2) 'Total elapsed real time = ',hrs,min,sec
-close(206)
-write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Elapsed_Times.dat')") energy
-open(unit=207,file=filename,access='append',action='write')
-write(207,*) trial,hrs,':',min,':',sec
-close(207)
+write(filename,'("../scratch/Jup_Sul/Output/Log/Full_Run.dat")')
+open(unit=208,file=filename,,access='append',action='write')
+write(208,*) trial,hrs,':',min,':',sec
+close(208)
 10001 format(F8.2,3(2x,ES10.3E2),2x,F9.2,4(2x,I2))
 end program
