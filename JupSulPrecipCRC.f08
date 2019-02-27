@@ -592,7 +592,7 @@ do run=nEnergies,1,-1 !Loop through different initial ion energies
   hrs=int(real(t4-t3)/clock_rate/3600.0)
   min=int(((real(t4-t3)/clock_rate)-hrs*3600)/60)
   sec=mod(real(t4-t3)/clock_rate,60.0)
-  write(206,F2) 'Individual run elapsed real time = ',hrs,':',min,':',sec
+  write(206,F2) 'Individual run elapsed real time = ',hrs,min,sec
   close(206)
   write(filename,"('../scratch/Jup_Sul/Output/',I0,'/Elapsed_Times.dat')") energy
   open(unit=207,file=filename,access='append',action='write')
