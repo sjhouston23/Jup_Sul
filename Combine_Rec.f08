@@ -140,9 +140,9 @@ do run=nEnergies,nEnergies-1,-1!,1,-1!nEnergies
     end do
     read(104,*) !H_2^* has an additional line
     do i=1,atmosLen !Loop through the atmosphere
-      write(102,F02) altitude(i),Hp(i) !H^+ production
-      write(103,F02) altitude(i),H2p(i) !H_2^+ production
-      write(104,F02) altitude(i),H2Ex(i) !H_2^* production
+      read(102,F02) altitude(i),Hp(i) !H^+ production
+      read(103,F02) altitude(i),H2p(i) !H_2^+ production
+      read(104,F02) altitude(i),H2Ex(i) !H_2^* production
     end do
     HpComb=HpComb+Hp !H^+ production combined
     H2pComb=H2pComb+H2p !H_2^+ production combined
