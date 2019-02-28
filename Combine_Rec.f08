@@ -60,7 +60,7 @@ data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
 !********************************* Initialize **********************************
 energy=0;nTrials=0;trial=0;nEnergies=0
 !*******************************************************************************
-EnergySwitch=2 !1 for normal energy bins, 2 for Juno energy bins
+EnergySwitch=1 !1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
   nEnergies=nEnergiesNorm
   allocate(IonEnergy(nEnergies))
@@ -71,20 +71,30 @@ elseif(EnergySwitch.eq.2)then !JEDI interpolated energy bins
   IonEnergy=IonEnergyJuno
 end if
 !******************************** Main Program *********************************
-write(*,*) "What energy [kev] for Elapsed_Times.dat file?"
-read(*,*) energy !Input the initial ion energy
-write(filename,'("../scratch/Jup_Sul/Output/",I0,"/Elapsed_Times.dat")')&
- energy
-! write(filename,'("../scratch/Jup_Sul/Output/Trials.dat")')
-open(unit=100,file=filename,status='old')
-do i=1,MaxnTrials
-  read(100,*,end=1000) trial(i)
-  nTrials=nTrials+1
-end do
-1000 continue
-close(100)
-do run=nEnergies,nEnergies-1,-1!,1,-1!nEnergies
+! write(*,*) "What energy [kev] for Elapsed_Times.dat file?"
+! read(*,*) energy !Input the initial ion energy
+! write(filename,'("../scratch/Jup_Sul/Output/",I0,"/Elapsed_Times.dat")')&
+!  energy
+! ! write(filename,'("../scratch/Jup_Sul/Output/Trials.dat")')
+! open(unit=100,file=filename,status='old')
+! do i=1,MaxnTrials
+!   read(100,*,end=1000) trial(i)
+!   nTrials=nTrials+1
+! end do
+! 1000 continue
+! close(100)
+do run=1,nEnergies
+  nTrials=0
   energy=nint(IonEnergy(run))
+  write(filename,'("../scratch/Jup_Sul/Output/",I0,"/Elapsed_Times.dat")')&
+   energy
+  open(unit=100,file=filename,status='old')
+  do i=1,MaxnTrials
+   read(100,*,end=1000) trial(i)
+   nTrials=nTrials+1
+  end do
+  1000 continue
+  close(100)
   write(*,*) 'Reading in and combining files...'
   write(*,*) 'Number of files: ',nTrials,'At an energy of: ',energy,'keV/u.'
 !********************************* Initialize **********************************
