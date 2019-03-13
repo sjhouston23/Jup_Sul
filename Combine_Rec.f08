@@ -83,7 +83,7 @@ end if
 ! end do
 ! 1000 continue
 ! close(100)
-do run=1,nEnergies
+do run=nEnergies,nEnergies
   nTrials=0
   energy=nint(IonEnergy(run))
   write(filename,'("../scratch/Jup_Sul/Output/",I0,"/Elapsed_Times.dat")')&
@@ -101,7 +101,7 @@ do run=1,nEnergies
   nerr=0;start=1;HpComb=0.0;H2pComb=0.0;H2ExComb=0.0;SulVsEngComb=0.0
   collisionsComb=0;PhotonsCXComb=0.0;PhotonsDEComb=0.0;SPvsEngComb=0.0
   SIMxsTotvsEngComb=0.0;dEvsEngComb=0.0;dNvsEngComb=0.0;SIMxsTotxdEvsEngComb=0.0
-  nSPionsComb=0
+  nSPionsComb=0;electFwdComb=0.0;electBwdComb=0.0
 !********** Open output data files for each set of initial energies ************
   1002 continue
   do n=start,nTrials
@@ -109,6 +109,7 @@ do run=1,nEnergies
     nLines=0;SulEngBins=0.0;SulVsEng=0.0;altitude=0.0;Hp=0.0;H2p=0.0;H2Ex=0.0
     collisions=0;PhotonsCX=0.0;PhotonsDE=0.0;SPBins=0.0;SPvsEng=0.0;
     SIMxsTotvsEng=0.0;dEvsEng=0.0;dNvsEng=0.0;SIMxsTotxdEvsEng=0.0;nSPions=0
+    electFwd=0.0;electBwd=0.0
 !******************************** Read in Files ********************************
     do i=1,nOutputFiles !Open all of the files
       write(filename,'("../scratch/Jup_Sul/Output/",I0,"/",A,"-",I0,".dat")') &
@@ -209,6 +210,7 @@ do run=1,nEnergies
     open(unit=200+i,file=filename,status='unknown')
   end do
   norm=nTrials-nerr !Normalization condition to per ion per cm
+  write(*,*) norm,nTrials,nerr
   !*** Charge state distribution
   write(201,H01) !Sulfur charge state distribution header
   do i=2,nSulEngBins !Sulfur charge state distribution
@@ -281,9 +283,10 @@ do run=1,nEnergies
       nSPionsComb(i)
   end do
   !*** 2-Stream electrons
+  write(*,*) norm,nTrials,nerr
   do j=1,nE2strBins
-    write(209,F2Str) ((electFwdComb(i,j)/norm),i=atmosLen,1,-1)
-    write(210,F2Str) ((electBwdComb(i,j)/norm),i=atmosLen,1,-1)
+    write(209,F2Str) (electFwdComb(i,j)/real(norm),i=atmosLen,1,-1)
+    write(210,F2Str) (electBwdComb(i,j)/real(norm),i=atmosLen,1,-1)
   end do
   do i=1,nOutputFiles !Close all of the files
     close(200+i)
