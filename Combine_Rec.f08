@@ -28,6 +28,7 @@ integer trial(MaxnTrials),nLines(nOutputFiles) !Number of trials/lines in a file
 integer(kind=int64),dimension(nTargProc,1+nProjProc)::collisions,collisionsComb
 integer(kind=int64),dimension(nSPBins) :: nSPions,nSPionsComb
 
+real*8 norm
 real*8,allocatable,dimension(:) :: IonEnergy !Initial ion energies once decided
 real*8,dimension(nEnergiesJuno) :: IonEnergyJuno !Initial ion energies for Juno
 real*8,dimension(nEnergiesNorm) :: IonEnergyNorm !Initial ion energies normally
@@ -58,7 +59,7 @@ data files/'ChargeStateDistribution','H+_Prod','H2+_Prod','H2*_Prod',&
      'Collisions','Photons_CX','Photons_DE','Stopping_Power',&
      '2Str_Elect_Fwd','2Str_Elect_Bwd'/
 !********************************* Initialize **********************************
-energy=0;nTrials=0;trial=0;nEnergies=0
+energy=0;trial=0;nEnergies=0
 !*******************************************************************************
 EnergySwitch=1 !1 for normal energy bins, 2 for Juno energy bins
 if(EnergySwitch.eq.1)then !Normal energy bins
@@ -84,7 +85,7 @@ end if
 ! 1000 continue
 ! close(100)
 do run=nEnergies,nEnergies
-  nTrials=0
+  nTrials=0;norm=0.0
   energy=nint(IonEnergy(run))
   write(filename,'("../scratch/Jup_Sul/Output/",I0,"/Elapsed_Times.dat")')&
    energy
@@ -209,7 +210,7 @@ do run=nEnergies,nEnergies
     filename=trim(filename)
     open(unit=200+i,file=filename,status='unknown')
   end do
-  norm=nTrials-nerr !Normalization condition to per ion per cm
+  norm=real(nTrials)-real(nerr) !Normalization condition to per ion per cm
   write(*,*) norm,nTrials,nerr
   !*** Charge state distribution
   write(201,H01) !Sulfur charge state distribution header
@@ -285,8 +286,8 @@ do run=nEnergies,nEnergies
   !*** 2-Stream electrons
   write(*,*) norm,nTrials,nerr
   do j=1,nE2strBins
-    write(209,F2Str) (electFwdComb(i,j)/real(norm),i=atmosLen,1,-1)
-    write(210,F2Str) (electBwdComb(i,j)/real(norm),i=atmosLen,1,-1)
+    write(209,F2Str) (electFwdComb(i,j)/norm,i=atmosLen,1,-1)
+    write(210,F2Str) (electBwdComb(i,j)/norm,i=atmosLen,1,-1)
   end do
   do i=1,nOutputFiles !Close all of the files
     close(200+i)
