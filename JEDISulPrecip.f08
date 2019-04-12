@@ -24,7 +24,8 @@ integer tProc,nTargProc !Number of target processes
 parameter(nProjProc=4,nTargProc=7)
 
 parameter(nChS=17,atmosLen=1544,nEng=36)
-parameter(nOutputFiles=6)!,MaxnTrials=1000,MaxnLines=100000)
+parameter(nOutputFiles=8)!,MaxnTrials=1000,MaxnLines=100000)
+parameter(nE2strBins=260) !Number of 2 stream bins
 real*8 Eion(nEng) !Ion energies
 ! parameter(nSulEngBins=2000,nSPBins=2000)
 
@@ -39,6 +40,7 @@ real*8,dimension(atmosLen) :: altitude
 ! real*8,dimension(nEng,nChS,nSulEngBins) :: SulVsEng
 real*8,dimension(nEng,atmosLen) :: Hp,H2p,H2Ex
 real*8,dimension(nEng,nChS,atmosLen) :: PhotonsCX,PhotonsDE
+real*8,dimension(nEng,atmosLen,nE2strBins) :: electFwd,electBwd
 ! real*8,dimension(nEng,nSPBins) :: SPvsEng,SIMxsTotvsEng
 ! real*8,dimension(nEng,nSPBins) :: dEvsEng,dNvsEng,SIMxsTotxdEvsEng
 !* JEDI variables
@@ -49,6 +51,7 @@ real*8,dimension(nEng) :: Jflux
 ! real*8,dimension(nChS,nSulEngBins) :: JSulVsEng
 real*8,dimension(atmosLen) :: JHp,JH2p,JH2Ex
 real*8,dimension(nChS,atmosLen) :: JPhotonsCX,JPhotonsDE
+real*8,dimension(atmosLen,nE2strBins) :: JelectFwd,JelectBwd
 ! real*8,dimension(nSPBins) :: JSPvsEng,JSIMxsTotvsEng
 ! real*8,dimension(nSPBins) :: JdEvsEng,JdNvsEng,JSIMxsTotxdEvsEng
 
@@ -66,8 +69,7 @@ data Eion/5.312,6.062,6.893,7.759,8.714,9.766,11.140,12.271,13.518,14.892,&
      36.321,38.761,43.293,48.355,54.009,60.324,69.950,81.112,94.054,109.062,&
      131.160,157.734,189.692,228.125,270.78,312.5/ !Interpolated energies
 data files/'H+_Prod','H2+_Prod','H2*_Prod','Photons_CX','Photons_DE',&
-           'Photons_Total'/!,&
-     ! '2Str_Elect_Fwd','2Str_Elect_Bwd'/ !Filenames
+           '2Str_Elect_Fwd','2Str_Elect_Bwd','Photons_Total'/ !Filenames
 !* Width of JEDI energy bins: (May eventually need to be adjusted)
 !data Jebins/66.0,71.0,105.0,216.0,346.0,251.0,300.0,880.0,2280.0,5340.0/
 !********************************* Initialize **********************************
@@ -83,7 +85,7 @@ version='PJ7_Paper'
 call JEDIInterpolator(version,Jflux)
 !********************************* Initialize **********************************
 energy=0;altitude=0.0;Hp=0.0;H2p=0.0;H2Ex=0.0!;prode2stF=0.0;prode2stB=0.0
-PhotonsCX=0.0;PhotonsDE=0.0
+PhotonsCX=0.0;PhotonsDE=0.0;electFwd=0.0;electBwd=0.0
 !********** Open output data files for each set of initial energies ************
 write(*,*) 'Opening sulfur preciptation files for all energies...'
 do run=1,nEng !Loop through each initial ion energy
@@ -102,9 +104,9 @@ do run=1,nEng !Loop through each initial ion energy
   end do
   read(103,*) !H_2^* has an additional line
   do i=1,atmosLen !Loop through the atmosphere
-    write(101,F02) altitude(i),Hp(run,i) !H^+ production
-    write(102,F02) altitude(i),H2p(run,i) !H_2^+ production
-    write(103,F02) altitude(i),H2Ex(run,i) !H_2^* production
+    read(101,F02) altitude(i),Hp(run,i) !H^+ production
+    read(102,F02) altitude(i),H2p(run,i) !H_2^+ production
+    read(103,F02) altitude(i),H2Ex(run,i) !H_2^* production
   end do
 !*** Photon production
   do i=1,13
@@ -116,7 +118,12 @@ do run=1,nEng !Loop through each initial ion energy
     read(104,F06) altitude(i),(PhotonsCX(run,j,i),j=1,nChS)
     read(105,F06) altitude(i),(PhotonsDE(run,j,i),j=1,nChS)
   end do
-  do i=1,nOutputFiles
+!*** 2-Stream electrons
+  do j=1,nE2strBins
+    read(106,F2Str) (electFwd(run,i,j),i=atmosLen,1,-1)
+    read(107,F2Str) (electBwd(run,i,j),i=atmosLen,1,-1)
+  end do
+  do i=1,nOutputFiles !Close all of the files
     close(100+i)
   end do
 end do
@@ -132,6 +139,10 @@ do run=1,nEng !Loop through every energy bin
     do j=1,nChS
       JPhotonsCX(j,i)=JPhotonsCX(j,i)+PhotonsCX(run,j,i)*Jflux(run)
       JPhotonsDE(j,i)=JPhotonsDE(j,i)+PhotonsDE(run,j,i)*Jflux(run)
+    end do
+    do j=1,nE2strBins
+      JelectFwd(i,j)=JelectFwd(i,j)+electFwd(run,i,j)*Jflux(run)
+      JelectBwd(i,j)=JelectBwd(i,j)+electBwd(run,i,j)*Jflux(run)
     end do
   end do !End atmsophere loop
 end do !End energy bin loop
@@ -155,7 +166,7 @@ end do
 !*** Photon production
 write(204,N01) !CX note
 write(205,N02) !DE note
-do i=1,3 !Loop through CX and DE headers
+do i=1,2 !Loop through CX and DE headers
   if(i.le.2)then
     write(203+i,*) !Blank space
     write(203+i,H09) !Initial input header
@@ -169,9 +180,9 @@ write(204,F06) 2.0,& !CX - TI, SC, SC+SS
   (sum(JPhotonsCX(ChS,:))*2.0e5,ChS=1,nChS)
 write(205,F06) 2.0,& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
   (sum(JPhotonsDE(ChS,:))*2.0e5,ChS=1,nChS)
-write(206,F06) 2.0,& !CX + DE, Total photon production
+write(208,F06) 2.0,& !CX + DE, Total photon production
   (sum(JPhotonsCX(ChS,:)+JPhotonsDE(ChS,:))*2.0e5,ChS=1,nChS)
-do i=1,3 !Loop through CX and DE headers
+do i=1,2 !Loop through CX and DE headers
   write(203+i,*) !Blank space
   write(203+i,H07) !Photon production vs. altitude header
   write(203+i,H08) !Charge state header
@@ -181,8 +192,12 @@ do i=1,atmosLen
    (JPhotonsCX(ChS,i),ChS=1,nChS)
   write(205,F06) altitude(i),& !DE - SI+SPEX, DI+SPEX, TEX+SPEX
    (JPhotonsDE(ChS,i),ChS=1,nChS)
-  write(206,F06) altitude(i),& !CX + DE, Total photon production
+  write(208,F06) altitude(i),& !CX + DE, Total photon production
    ((JPhotonsCX(ChS,i)+JPhotonsDE(ChS,i)),ChS=1,nChS)
+end do
+do j=1,nE2strBins
+  write(206,F2Str) (JelectFwd(i,j),i=atmosLen,1,-1)
+  write(207,F2Str) (JelectBwd(i,j),i=atmosLen,1,-1)
 end do
 do i=1,nOutputFiles
   close(200+i)
