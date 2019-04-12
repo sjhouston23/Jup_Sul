@@ -11,9 +11,11 @@
 *.out
 *.numbers
 *~
+LoopRead.sh
 2Stream/input
 2Stream/common
 2Stream/output
+2Stream/Plots
 Atmosphere/Tp*
 Atmosphere/IRTF*
 Output/*
