@@ -13,7 +13,7 @@ implicit real*8(a-h,o-z)
 !**************************** Variable Declaration *****************************
 integer Eng,ChS,Alt,AtmosLen
 
-parameter(nFiles=10,nChS=17,AtmosLen=1544,nEnergies=9)
+parameter(nFiles=10,nChS=17,AtmosLen=1544,nEnergies=24)
 
 integer,dimension(nEnergies) :: Eion
 
@@ -22,7 +22,9 @@ real*8,dimension(AtmosLen,nEnergies,nChS,2) :: Production
 
 character(len=100) filename,files(2)
 !****************************** Data Declaration *******************************
-data Eion/10,50,75,100,200,300,500,1000,2000/
+! data Eion/10,50,75,100,200,300,500,1000,2000/
+data Eion/10,25,50,75,100,125,150,175,200,250,300,350,400,450,500,600,700,800,&
+         900,1000,1250,1500,1750,2000/
 !******************************** Main Program *********************************
 do Eng=1,nEnergies
   write(filename,'("./Output/",I0,"/Photons_CX-Comb.dat")') Eion(Eng)
@@ -38,9 +40,23 @@ do Eng=1,nEnergies
     read(100,*) Altitude(i),(Production(i,Eng,ChS,1),ChS=1,nChS) !CX production
     read(101,*) Altitude(i),(Production(i,Eng,ChS,2),ChS=1,nChS) !DE production
   end do
+  open(unit=102,file="./Output/TotalProductions/TotLatex.dat",access='append')
+  write(102,1023) &!Eion(eng),&
+    (sum(Production(:,Eng,8,1))+sum(Production(:,Eng,8,2)))*2e5,&
+    (sum(Production(:,Eng,9,1))+sum(Production(:,Eng,9,2)))*2e5,&
+    (sum(Production(:,Eng,10,1))+sum(Production(:,Eng,10,2)))*2e5,&
+    (sum(Production(:,Eng,11,1))+sum(Production(:,Eng,11,2)))*2e5,&
+    (sum(Production(:,Eng,12,1))+sum(Production(:,Eng,12,2)))*2e5,&
+    (sum(Production(:,Eng,13,1))+sum(Production(:,Eng,13,2)))*2e5,&
+    (sum(Production(:,Eng,14,1))+sum(Production(:,Eng,14,2)))*2e5,&
+    (sum(Production(:,Eng,15,1))+sum(Production(:,Eng,15,2)))*2e5,&
+    (sum(Production(:,Eng,16,1))+sum(Production(:,Eng,16,2)))*2e5
+1023 format(9(' & ',ES8.2),' \\ \hline')
   close(100)
   close(101)
+  close(102)
 end do
+stop
 do ChS=1,nChS
   write(filename,'("./Output/TotalProductions/XRay_CX_",I0,".dat")') ChS-1
   open(unit=100,file=trim(filename),status='unknown') !Open X-Ray DE
