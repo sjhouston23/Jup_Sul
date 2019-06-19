@@ -298,12 +298,11 @@ end if
 !*******************************************************************************
 !******************************** MAIN PROGRAM *********************************
 !*******************************************************************************
-
 nIons=100 !Number of ions that are precipitating
 trial=5 !The seed for the RNG
 do run=7,7!,nEnergies !Loop through different initial ion energies
   call system_clock(t3,clock_rate,clock_max) !Comp. time of each run
-  energy=int(IonEnergy(run))!+15
+  energy=int(IonEnergy(run))
   write(*,*) "Number of ions:         ",nIons
   write(*,*) "Initial energy:         ",energy,'keV/u'
   write(*,*) "Trial number (RNG Seed):",trial
@@ -319,12 +318,8 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
   H2p=0;Sulfur    =0;electFwd  =0;electBwd  =0;maxDpt   =0
   H2Ex  =0;collisions=0;SulVsEng  =0
   SPvsEng=0.0;SIMxsTotvsEng=0.0;dEvsEng=0.0;dNvsEng=0.0;nSPions=0
-  ! pHp =0.0;totalH2p=0.0;collisions=0;npHp      =0;npH2p        =0
-  ! pH2p=0.0;totO      =0;dNvsEng =0.0;oxygenCX=0.0;prode2stF  =0.0;prode2stB=0.0
-  !SPvsEng    =0.0;nSPions  =0;totalHp =0.0;dEvsEng    =0.0;SIMxsTotvsEng=0.0
 !************************ Ion Precipitation Begins Here ************************
   write(*,*) 'Starting Ion Precipitation: ', energy,'keV/u' !Double check energy
-  ! write(*,*) TargColl2(n1),'+',ProjColl2(n2)
   do ion=1,nIons !Each ion starts here
     !*****************************
     !Initial Conditions:
@@ -333,7 +328,7 @@ do run=7,7!,nEnergies !Loop through different initial ion energies
     kappa =0.0         !Used to account for pitch angle
     numSim=energy*1000 !Number of simulations for a single ion. Must be great !~
                        !enough to allow the ion to lose all energy
-    E=energy   !Start with initial ion energy
+    E=energy           !Start with initial ion energy
     ChS_init=2         !1 is an initial charge state of 0, 2 is +1
     ChS=ChS_init       !Set the charge state variable that will be changed
     ChS_old=ChS_init   !Need another charge state variable for energyLoss.f08
@@ -623,17 +618,6 @@ end do
   do i=1,nOutputFiles
     close(100+i)
   end do
-  ! open(unit=300,file='./Output/210/dEcollisions.dat')
-  !
-  ! write(300,F03) (ProjColl(i),i=1,nProjProc) !Collisions header
-  ! do i=1,nTargProc !Total number of each type of collision
-  !   write(300,*) TargColl(i),(dEcollisions(i,j)/collisions(i,j),j=1,5),&
-  !     sum(dEcollisions(i,:))/sum(collisions(i,:))
-  ! end do
-  ! write(300,F4) !'--'
-  ! write(300,*) 'Sum ',(sum(dEcollisions(:,i)),i=1,nProjProc+1),sum(dEcollisions)
-  ! close(300)
-
   call system_clock(t4,clock_rate,clock_max) !Elapsed time for a single energy
   hrs=int(real(t4-t3)/clock_rate/3600.0)
   min=int(((real(t4-t3)/clock_rate)-hrs*3600)/60)
@@ -641,15 +625,6 @@ end do
   ! write(*,*) 'Individual run elapsed real time = ',hrs,':',min,':',sec
   deallocate(angle) !Angle variable is reallocated for each energy
 end do !run=1,nEnergies
-! open(unit=301,file='./Output/210/dEPID.dat')
-! write(301,3002)((TargColl2(i),'+',ProjColl2(j),j=1,1+nProjProc),i=1,nTargProc)
-! do i=186,215
-!   write(301,3001) SPBins(i)-(SPBinSize/2.0),&
-!     ((dEvsEngPID(j,k,i)/ionsPID(j,k,i),k=1,1+nProjProc),j=1,nTargProc)
-! end do
-! close(301)
-! 3001 format(1x,F8.2,6x,35(F8.2,2x))
-! 3002 format(15x,35(A4,A1,A4,1x))
 
 call system_clock (t2,clock_rateTotal,clock_maxTotal) !Total elapsed time
 hrs=int(real(t2-t1)/clock_rateTotal/3600.0)
