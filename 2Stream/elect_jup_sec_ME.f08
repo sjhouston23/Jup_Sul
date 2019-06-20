@@ -120,7 +120,7 @@ PRINT*, 'THE MAJOR IONS'
 print *
 print *,' Initializing...'
 
-OPEN(1,FILE='input/elect/jelect.par',STATUS='OLD')
+OPEN(1,FILE='input/elect/jelect_ME.par',STATUS='OLD')
 !c        OPEN(1,FILE='celect.par',STATUS='OLD')
 READ(1,*),nprodf  !include solar electron/secondary electron flux from photoe code/ion precip model
 
@@ -182,7 +182,7 @@ ENDIF
 !C
 !CCCC  $1.1:  open input files.
 !C  ------------------------
-OPEN(3,FILE='input/elect/geopar.t',STATUS='OLD')	!geometric parameters
+OPEN(3,FILE='input/elect/geopar_ME.t',STATUS='OLD')	!geometric parameters
 OPEN(7,FILE='common/input/XGRIDNEW_EXTEND.jup',STATUS='OLD')	!extended energy grid
 !C		OPEN(7,FILE='common/input/xgridnew_ext.jupiter',STATUS='OLD')	!extended energy grid
 !C	  OPEN(9,FILE='common/output/xsect_nobcksc.jupiter',STATUS='OLD')	!XSECT output
@@ -453,26 +453,26 @@ ENDDO
 !* For Monoenergetic (auroral) electron beams chose the energy bin (i)
 !* for desired energy and then input the flux for phiinf(i). The rest of the bins will be set to 0.0
       DO 765 I=1,JMAX
-	  	PHIINF(I)=0.0 !No magnetospheric electrons.
+	  	! PHIINF(I)=0.0 !No magnetospheric electrons.
 !*****SJH Uncomment the next lines for a monogenergetic beam
 !* Here I have allowed for a quick normalization to 1 mW/m^2. It takes two runs,
 !* But the second run tells you want is needed for phiinf to have 1 mW/m^2.
-			! IF(I .EQ. 226)THEN
-			! 		print*,''
-      ! 	  print*, 'energy bin for monoenergetic beam [keV] = ', EE(I)*100.0
-      !    PHIINF(I) = 64015.4766 !Means: Input flux of 'something'cm-2s-1eV-1 at E bin chosen
-      !    ! I = 185 and phiinf = 1273777.38 for 5keV
-      !    ! I = 210 and phiinf = 630455.438 for 10keV
-      !    ! I = 226 and phiinf = 64015.4766 for 20keV
-      !    ! I = 242 and phiinf = 4847.77393 for 50keV
-      !    ! I = 251 and phiinf = 1260.91101 for 100keV
-      !    ! I = 260 and phiinf = 660.477173 for 200keV
-      !    print*, 'Energy flux [eV-1 cm-2 s-1] = ',phiinf(i)
-			! 		print*, 'Delta E [eV] = ', DEL(I)
-			! 		print*, 'Energy flux [mW m-2] = ', phiinf(i)*DEL(I)*EE(I)*1.60217662e-12*0.5
-			! 		print*, 'For 1 mW/m^2, use phiinf = ', 2/(DEL(I)*EE(I)*1.60217662e-12)
-			! 		print*, ''
-      ! ENDIF
+			IF(I .EQ. 226)THEN
+        print*,''
+    	  print*, 'energy bin for monoenergetic beam [keV] = ', EE(I)*100.0
+        PHIINF(I) = 64015.4766 !Means: Input flux of 'something' cm-2s-1eV-1 at E bin chosen
+        ! I = 185 and phiinf = 1273777.38 for 5keV
+        ! I = 210 and phiinf = 630455.438 for 10keV
+        ! I = 226 and phiinf = 64015.4766 for 20keV
+        ! I = 242 and phiinf = 4847.77393 for 50keV
+        ! I = 251 and phiinf = 1260.91101 for 100keV
+        ! I = 260 and phiinf = 660.477173 for 200keV
+        print*, 'Energy flux [eV-1 cm-2 s-1] = ',phiinf(i)
+				print*, 'Delta E [eV] = ', DEL(I)
+				print*, 'Energy flux [mW m-2] = ', phiinf(i)*DEL(I)*EE(I)*1.60217662e-12*0.5
+				print*, 'For 1 mW/m^2, use phiinf = ', 2/(DEL(I)*EE(I)*1.60217662e-12)
+				print*, ''
+      ENDIF
 !*****NOM Uncomment the next lines for a monogenergetic beam
 !c       IF(I .EQ. 227)THEN
 !c          PHIINF(I) = 4.85e4 !Means: Input flux of 'something'cm-2s-1eV-1 at E bin chosen
